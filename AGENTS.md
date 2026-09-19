@@ -10,9 +10,19 @@ Remi is informational. It is not a diagnosis, a screening result, a risk predict
 
 ## Skills
 
-- Use /skill:show-me-your-work to ship any task.
 - Always create real verification. Typechecking and no syntax errors does not mean it works. Build pre-verification tools with /skill:create-verification-skill and maintain them with /skill:maintain-verification-skill.
 - Run /hackathon while building so `hackathon.md` stays current. Judges read that build log.
+
+## Shipping
+
+Every task ships through the same loop, regardless of size.
+
+1. Verify against the real artifact first. A scored JEV call, a sent email, a deployed URL. Typecheck alone proves nothing.
+2. Run the verification suite. Under 5 minutes, parallel, no duplicates.
+3. Commit with a plain conventional title. One concern per commit.
+4. Deploy to convex.site and confirm the live URL serves the change.
+5. Update `hackathon.md` via /hackathon so the judge-facing build log stays current.
+6. Record the trail with /skill:show-me-your-work.
 
 ## Verification
 
