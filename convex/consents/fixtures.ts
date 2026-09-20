@@ -18,3 +18,20 @@ export const stageReport = internalMutation({
       createdAt: Date.now(),
     }),
 });
+
+// A second subject, so the consent read path can be shown to return one
+// subject's reports and not another's.
+export const stageSubject = internalMutation({
+  args: {},
+  returns: v.id("subjects"),
+  handler: async (ctx) =>
+    await ctx.db.insert("subjects", {
+      name: "Other subject",
+      relationship: "other",
+      ageBand: "70-79",
+      medications: [],
+      sleep: "seven hours",
+      concern: "fixture subject",
+      createdAt: Date.now(),
+    }),
+});

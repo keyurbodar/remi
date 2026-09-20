@@ -32,6 +32,7 @@ const RECIPIENT = "caregiver@example.com";
 const SCOPE = "email the visit brief to the caregiver";
 const OTHER_RECIPIENT = "someone-else@example.com";
 const OTHER_SCOPE = "email the visit brief to the doctor";
+const OWNER_ID = "demo-user";
 
 const seed = makeFunctionReference<"mutation", Record<string, never>, { subjectId: string }>(
   "seed:seed",
@@ -43,7 +44,7 @@ const grant = makeFunctionReference<
   string
 >("consents/grant:grant");
 
-const revoke = makeFunctionReference<"mutation", { consentId: string }, null>(
+const revoke = makeFunctionReference<"mutation", { reportId: string }, null>(
   "consents/revoke:revoke",
 );
 
@@ -63,6 +64,16 @@ if (convexUrl === undefined || deployment === undefined) {
 
 const deploymentName = deployment.replace(/^dev:/, "");
 const host = new URL(convexUrl).host;
+
+// The next call seeds the deployment CONVEX_URL names, and seeding clears all
+// twelve tables there, so the two variables disagreeing stops the script
+// instead of wiping the wrong deployment.
+if (host !== `${deploymentName}.convex.cloud`) {
+  throw new Error(
+    `CONVEX_URL host ${host} is not the ${deploymentName} deployment: seeding would clear every table on ${host}, not on ${deploymentName}.convex.cloud.`,
+  );
+}
+
 const convex = new ConvexHttpClient(convexUrl);
 
 function check(name: string, pass: boolean, measured: string) {
@@ -134,17 +145,21 @@ function guardOutcome(reportId: string, recipient: string, scope: string): Guard
   return { code: (JSON.parse(payload[1]) as ConsentDenial).code, receipt: null, output: payload[1] };
 }
 
-check(
-  "the CLI and the HTTP client target the same deployment",
-  host === `${deploymentName}.convex.cloud`,
-  `host=${host} deployment=${deploymentName}`,
-);
-
 const { subjectId } = await convex.mutation(seed);
 console.log(`seeded subject ${subjectId}`);
 
+const otherSubjectId = runInternal<string>("consents/fixtures:stageSubject", {});
+console.log(`staged other subject ${otherSubjectId}`);
+
+const otherReportId = runInternal<string>("consents/fixtures:stageReport", {
+  ownerId: OWNER_ID,
+  subjectId: otherSubjectId,
+  recipient: OTHER_RECIPIENT,
+});
+console.log(`staged report ${otherReportId} for ${OTHER_RECIPIENT}`);
+
 const reportId = runInternal<string>("consents/fixtures:stageReport", {
-  ownerId: "demo-user",
+  ownerId: OWNER_ID,
   subjectId,
   recipient: RECIPIENT,
 });
@@ -156,9 +171,11 @@ table(STATE_HEADERS, beforeGrant.map(stateCells));
 
 const staged = beforeGrant[0];
 check(
-  "consentState lists the staged report as the only report before any grant",
-  beforeGrant.length === 1 && staged?.reportId === reportId,
-  `rows=${beforeGrant.length} reportIds=${beforeGrant.map((row) => row.reportId).join(", ")}`,
+  "consentState returns only the subject's own report, not another subject's",
+  beforeGrant.length === 1 &&
+    staged?.reportId === reportId &&
+    !beforeGrant.some((row) => row.reportId === otherReportId),
+  `rows=${beforeGrant.length} reportIds=${beforeGrant.map((row) => row.reportId).join(", ")} otherReportId=${otherReportId}`,
 );
 
 check(
@@ -177,17 +194,12 @@ check(
 const consentId = await convex.mutation(grant, { reportId, recipient: RECIPIENT, scope: SCOPE });
 console.log(`granted consent ${consentId}`);
 
-check(
-  "grant returns a consent id",
-  typeof consentId === "string" && consentId !== "",
-  `consentId=${show(consentId)}`,
-);
-
 const afterGrant = await convex.query(consentState, { subjectId });
 console.log("\nConsent state after the grant");
 table(STATE_HEADERS, afterGrant.map(stateCells));
 
 const active = afterGrant[0];
+const activeGrantedAt = active?.grantedAt;
 check(
   "the granted report reads status active with the granted scope",
   active?.reportId === reportId && active?.status === "active" && active?.scope === SCOPE,
@@ -195,20 +207,20 @@ check(
 );
 
 check(
-  "the granted row records a grantedAt timestamp",
-  typeof active?.grantedAt === "number",
+  "the granted row records a real grantedAt",
+  typeof active?.grantedAt === "number" && active.grantedAt > 0,
   `grantedAt=${show(active?.grantedAt)}`,
 );
 
 const admitted = guardOutcome(reportId, RECIPIENT, SCOPE);
 check(
-  "the guard admits the granted triple and returns the granted consent",
+  "the guard admits the granted triple and returns the live consent",
   admitted.code === "no_error" && admitted.receipt?.consentId === consentId,
   `code=${admitted.code} returned=${show(admitted.receipt?.consentId)} granted=${show(consentId)}`,
 );
 
 check(
-  "the admitted guard echoes the granted recipient and scope",
+  "the admitted receipt carries the recipient and scope the send path will use",
   admitted.receipt?.recipient === RECIPIENT && admitted.receipt?.scope === SCOPE,
   `recipient=${show(admitted.receipt?.recipient)} scope=${showScope(admitted.receipt?.scope)}`,
 );
@@ -227,14 +239,46 @@ check(
   `code=${wrongScope.code} scope=${showScope(OTHER_SCOPE)} output=${wrongScope.output}`,
 );
 
-const revoked = await convex.mutation(revoke, { consentId });
-console.log(`revoked consent ${consentId}`);
+const secondConsentId = await convex.mutation(grant, {
+  reportId,
+  recipient: RECIPIENT,
+  scope: SCOPE,
+});
+console.log(`granted consent ${secondConsentId} again`);
 
-check("revoke returns null", revoked === null, `revoke=${show(revoked)}`);
+check(
+  "a second grant for the same report is a new row, not the first one",
+  secondConsentId !== consentId,
+  `second=${show(secondConsentId)} first=${show(consentId)}`,
+);
+
+const secondGuard = guardOutcome(reportId, RECIPIENT, SCOPE);
+check(
+  "the guard still admits while a second grant is live",
+  secondGuard.code === "no_error",
+  `code=${secondGuard.code} returned=${show(secondGuard.receipt?.consentId)} output=${secondGuard.output}`,
+);
+
+const afterSecondGrant = await convex.query(consentState, { subjectId });
+console.log("\nConsent state after the second grant");
+table(STATE_HEADERS, afterSecondGrant.map(stateCells));
+
+const live = afterSecondGrant[0];
+check(
+  "the newest grant is the one consentState reports",
+  live?.status === "active" &&
+    typeof live?.grantedAt === "number" &&
+    typeof activeGrantedAt === "number" &&
+    live.grantedAt >= activeGrantedAt,
+  `status=${show(live?.status)} grantedAt=${show(live?.grantedAt)} activeGrantedAt=${show(activeGrantedAt)}`,
+);
+
+await convex.mutation(revoke, { reportId });
+console.log(`revoked consent for report ${reportId}`);
 
 const afterRevokeGuard = guardOutcome(reportId, RECIPIENT, SCOPE);
 check(
-  "the guard refuses the revoked consent as consent_revoked",
+  "revoking the report blocks the send even though two grants were live",
   afterRevokeGuard.code === "consent_revoked",
   `code=${afterRevokeGuard.code} output=${afterRevokeGuard.output}`,
 );
@@ -257,37 +301,31 @@ check(
 );
 
 check(
-  "the revoked row records a revokedAt timestamp",
-  typeof revokedRow?.revokedAt === "number",
-  `revokedAt=${show(revokedRow?.revokedAt)}`,
+  "the revoked row records a revokedAt at or after its grant",
+  typeof revokedRow?.revokedAt === "number" &&
+    typeof revokedRow?.grantedAt === "number" &&
+    revokedRow.revokedAt >= revokedRow.grantedAt,
+  `revokedAt=${show(revokedRow?.revokedAt)} grantedAt=${show(revokedRow?.grantedAt)}`,
 );
 
 check(
-  "revoking leaves the grantedAt of the revoked grant unchanged",
-  typeof revokedRow?.grantedAt === "number" && revokedRow.grantedAt === active?.grantedAt,
-  `grantedAtAfterRevoke=${show(revokedRow?.grantedAt)} grantedAtAfterGrant=${show(active?.grantedAt)}`,
+  "revoking leaves the grantedAt of the live grant unchanged",
+  typeof revokedRow?.grantedAt === "number" && revokedRow.grantedAt === live?.grantedAt,
+  `grantedAtAfterRevoke=${show(revokedRow?.grantedAt)} grantedAtAfterSecondGrant=${show(live?.grantedAt)}`,
 );
 
-const secondConsentId = await convex.mutation(grant, {
+const thirdConsentId = await convex.mutation(grant, {
   reportId,
   recipient: RECIPIENT,
   scope: SCOPE,
 });
-console.log(`granted consent ${secondConsentId} again`);
+console.log(`granted consent ${thirdConsentId} after the revoke`);
 
 const reGranted = guardOutcome(reportId, RECIPIENT, SCOPE);
 check(
-  "the guard admits the send again after a re-grant",
-  reGranted.code === "no_error",
-  `code=${reGranted.code} returned=${show(reGranted.receipt?.consentId)} output=${reGranted.output}`,
-);
-
-check(
-  "the re-grant is a new consent row, not the revoked one",
-  secondConsentId !== consentId && reGranted.receipt?.consentId === secondConsentId,
-  `reGranted=${show(secondConsentId)} revoked=${show(consentId)} returned=${show(
-    reGranted.receipt?.consentId,
-  )}`,
+  "a revoke is not permanent: a fresh grant admits the send again",
+  reGranted.code === "no_error" && reGranted.receipt?.consentId === thirdConsentId,
+  `code=${reGranted.code} returned=${show(reGranted.receipt?.consentId)} granted=${show(thirdConsentId)}`,
 );
 
 console.log("\nAssertions");

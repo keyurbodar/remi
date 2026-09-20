@@ -9,6 +9,10 @@ export const grant = mutation({
   handler: async (ctx, { reportId, recipient, scope }) => {
     const report = await ctx.db.get(reportId);
     if (!report) throw new Error(`Unknown report: ${reportId}`);
+    // Consent only binds a settled report, because a draft recipient can still
+    // change and the person would have consented to an address nobody sends to.
+    if (report.status !== "final")
+      throw new Error(`Report ${reportId} is ${report.status}, not final: consent binds a settled report`);
     // The grant binds the address the person was shown, so a caller that shows
     // one address and stores another is a bug, not a state the person can see.
     if (report.recipient !== recipient)
