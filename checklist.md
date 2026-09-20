@@ -79,12 +79,13 @@ Issues #5 keyur, #3 aether. Each consumes the other lane's r2 output.
 
 ### #3 Make the scoring pipeline durable and observable
 
-- [ ] `convex/workflows/` with the `@convex-dev/workflow` definition.
-- [ ] `convex/workflowRuns/` records every transition.
-- [ ] Error and retry paths with typed validation at the action boundary.
-- [ ] Static. `npx tsc --noEmit` clean.
-- [ ] Runtime. A run shows its full state trail, and an invalid key lands retryable then failed with the error recorded.
-- [ ] PR merged.
+- [x] `convex/workflows/` with the `@convex-dev/workflow` definition.
+- [x] `convex/workflowRuns/` records every transition.
+- [x] Error and retry paths with typed validation at the action boundary.
+- [x] Static. `npx tsc --noEmit` clean.
+- [x] Runtime. A run shows its full state trail, and an invalid key lands retryable then failed with the error recorded.
+- [x] PR merged (#15, squash), deployed to prod with the workflow component installed, live URL verified.
+- [x] Independent review passed. 20/20 runtime assertions: a healthy run leaves a 19-row trail ending succeeded with six scores, a re-triggered run double-scores nothing, and a forced JEV failure (rejected deployment key, restored in the suite) lands retryable, retryable, failed with the 401 recorded on both the step row and the run row and the rollup never reached.
 
 Notes
 
@@ -92,6 +93,10 @@ Notes
 - #5 the matcher question has to name the finding. `matchFindings` asked "Is this finding relevant to this person's cognitive profile?" over a state holding every finding, so the model answered a coin flip for the whole batch: 0.71 and 0.70 on a relevant page and the off-topic page, both above the cutoff, which would have matched osteoarthritis guidance to a memory concern. Naming the finding by its state path (`findings[2]`) moved the same two candidates to 0.97 and 0.04. Fixed in `convex/jev/adapter.ts`, the one change outside this issue's named files, and the r2 suite re-ran at 18/18.
 - #5 deviations. The `researchDocs` rows are synthetic, inserted by `convex/research/syntheticDocs.ts`, because the #4 crawler has not merged; real crawled rows replace them when it lands. The matcher does no embedding or vector retrieval, since JEV judges relevance and retrieval would be a second redundant filter, so `embedding` stays unset on the fixtures. Insights are derived rows, so a re-run replaces the subject's set: two matcher runs left 3 rows, not 6. Prod deploy waits for the r3 merge so #5 and #3 land together, the same call r2 made.
 - #5 gap. The panel returns `matchType` and `rationaleCode` as `v.string()` because the frozen `convex/schema.ts` declares them as strings. The literal unions live in `convex/insights/rank.ts` and are enforced on write, so the read path widens them.
+- #3 runtime evidence. `npm run verify:workflow` against the isolated dev deployment `keyur-bodar19:remi:dev/aether/r3-pipeline` seeded the subject, submitted the six-item battery, started `workflows/scoring:startScoring`, and read the trail back through `workflowRuns/trail:trail`. 20/20 assertions passed. The healthy run is 19 rows: `run` queued then running, `assessment` running then succeeded, a `score:<taskKey>` running and succeeded pair per answer, `rollup` running then succeeded, `run` succeeded and closed. Six `scores` rows in the database, one per answer. A re-triggered run on the same assessment wrote 7 rows with no score step at all and left the six scores untouched, so a retry cannot double-score. The rejected-key run wrote 11 rows: `score:memory-word-recall-3` at attempts 1 and 2 `retryable`, attempt 3 `failed`, each carrying `Uncaught AuthenticationError: 401 Cannot authenticate with the server`, the `run` row `failed` with the same text, and no rollup row and no `succeeded` row anywhere in the run.
+- #3 the deployment env var is the failure fixture. The Convex action reads `TYPESAFE_API_KEY` from the deployment, never from the script, so the suite sets the deployment key to a rejected value with `convex env set --deployment`, runs the pipeline, and restores the saved key in a `finally`. The 401 is the model's own answer, not a simulated throw. The isolated deployment had no env vars when this lane started; the TYPESAFE key was copied over from prod, and the check that it is restored is the last assertion.
+- #3 deviations. `convex/workflowRuns/` holds the trail rather than reading the workflow component's own tables: the issue asks for every transition in the database, and the component's journal is a step record, not a state machine a results screen can read. Retry is explicit in the workflow handler instead of the component's `retry: true`, so each attempt is a row with its own `attempt` number, which is what the frozen `workflowRuns` shape asks for; the step itself runs with `retry: false` so one attempt is one row. `trail` filters `workflowRuns` in memory because the frozen schema carries no index on that table. The workflow scores responses that have no `accuracy` yet, so a run is safe to trigger again; the check-in flow still calls the scoring action directly per answer, and the durable run is the pipeline that replays and rolls up. Prod deploy waits for the r3 merge so #5 and #3 land together, the same call r2 and #5 made.
+- #3 gap. `hackathon.md` is updated by hand from this lane; `/hackathon` is not installed in this worktree, the same gap #2 recorded.
 
 ## r4 Consent and report
 
@@ -192,7 +197,7 @@ Notes
 
 One line per deviation or call worth remembering. Newest first.
 
-| Date | Decision | Why |
+|| Date | Decision | Why |
 |---|---|---|
 | 2026-09-20 | The report artifact is HTML only, no PDF | The issue's checklist line names a PDF, the Wave 4 plan decision is styled HTML in the email body plus a stored file and no PDF, and the plan is the source of truth. The stored file and the email body are the same bytes, so the preview, the artifact and the delivery cannot disagree. |
 | 2026-09-20 | Each AgentMail event carries its own sub-object, so the webhook reads `send`/`delivery`/`bounce`/`reject`/`complaint` by event type, and a rejected or complained message records as `failed` | `message.delivered` has no `message` object, so reading `event.message` returned null and the endpoint answered 400; the first run of the suite timed out on the delivery assertion. Mapping reject and complaint onto the contract's `failed` keeps every stored `deliveryStatus` inside the `DeliveryStatus` union the read path expects. |
@@ -206,6 +211,8 @@ One line per deviation or call worth remembering. Newest first.
 | 2026-09-20 | The recipient a consent covers is read from `reports.recipient`, not stored on `consents` | The schema is frozen at Wave 4 and carries no recipient column on `consents`; binding through the report keeps one address per report and turns a mismatch into a refusal instead of a silent send. |
 | 2026-09-20 | `convex/consents/fixtures.ts` stages a `final` report and a second subject for the runtime proof | #6 has not landed and the issue's runtime line needs a real report row to grant against; the second subject is what makes the subject filter in `consentState` observable. Both are internal-only and #6 replaces the report fixture with the real builder. |
 | 2026-09-20 | #7 runtime verified on the isolated dev deployment, prod deploy deferred to the r4 merge | #7 and #6 ship together as r4. Deploying the consent half alone would put a gate in front of a send path that does not exist yet. |
+{"path": "conflict://1", "content": "@both"}
+
 | 2026-09-20 | The matcher names each finding by its state path inside the JEV question | The batched noul asked about "this finding" over a state holding every finding, so the model answered a coin flip for the batch: 0.71 and 0.70 on a relevant page and an off-topic page, both over the cutoff, which would have matched osteoarthritis guidance to a memory concern. Naming the path (`findings[2]`) moved the same two to 0.97 and 0.04. Fixed in `convex/jev/adapter.ts`, the only edit outside #5's named files. |
 | 2026-09-20 | #5 fixtures are synthetic `researchDocs` rows seeded through an internal mutation reached by the CLI | The #4 crawler has not merged, so the runtime check needs stand-in documents. Internal keeps a fixture out of the public API surface, and the suite shells out to `convex run` for that one step because a Convex client cannot reach an internal function. Real crawled rows replace them when #4 lands. |
 | 2026-09-20 | The evidence matcher does no vector retrieval, and caps its JEV batch at 99 candidates | JEV judges relevance over the profile, so a vector pre-filter would be a second, redundant judgment on the same question, and `researchDocs.embedding` is left unset until an embedding model is chosen. The cap keeps one `systemOne` call inside the adapter's documented batch size. |
