@@ -180,12 +180,18 @@ export async function matchFindings(input: {
   findings: { id: string; title: string; excerpt: string }[];
 }): Promise<FindingMatch[]> {
   const questions = Object.fromEntries(
-    input.findings.map((f) => [
+    input.findings.map((f, index) => [
       f.id,
-      noul(`Is this finding relevant to this person's cognitive profile?`, {
-        true: "Directly bears on this person's domains, age band, history, or stated concerns",
-        false: "Generic, unrelated, or about a different condition/population",
-      }),
+      // The state holds every finding, so the question has to name the one it
+      // asks about by path. Without the path the model answers a coin flip for
+      // the whole batch and the relevance scores cannot discriminate.
+      noul(
+        `Is the finding at \`findings[${index}]\` relevant to the person described at \`profile\`?`,
+        {
+          true: "Directly bears on this person's domains, age band, history, or stated concerns",
+          false: "Generic, unrelated, or about a different condition/population",
+        },
+      ),
     ]),
   );
   const res = await client.systemOne({
