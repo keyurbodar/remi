@@ -38,7 +38,8 @@ Every task ships through the same loop, regardless of size.
 - A function under 20 lines used once gets inlined. Over 20 lines, refactor on need. Under 20 lines used more than once, make it a function.
 - Strict ordering inside files. Imports, then enums, then structs, then logic.
 - No em dashes anywhere. Code, comments, commits, docs.
-- Follow YAGNI. Prefer one line solutions.
+- No fallbacks. No backward compatibility. No shims, no deprecated aliases, no dual code paths for "just in case". Rewrite the caller and delete the old path in the same change.
+- Follow YAGNI. Prefer one line solutions. If it adds no impact, it is bloat and it does not ship.
 - Inferred types over annotations. Make illegal states unrepresentable.
 
 ## Parallelism
@@ -92,9 +93,10 @@ remi/
 ## Taste
 
 - The smallest model that makes correct behavior unsurprising. Fight scope creep. YAGNI.
+- No fallbacks, no backward compatibility, no compatibility layers. Never write them.
+- Nothing ships because it might be useful later. Unused flexibility is bloat.
 - Complexity belongs at adapter boundaries. Business logic stays pure. UI stays dumb.
 - Comments describe how a thing is used, not what a line does. If code can say it, delete the comment.
-- A fallback changes the implementation path, never the product promise.
 - If a rule here fights the task, say so and get a human decision before breaking it.
 
 ## References
