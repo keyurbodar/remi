@@ -28,7 +28,7 @@ Gate. Every later round is blocked until this lands. Do not start r2 early.
 
 Notes
 
-- Only TYPESAFE_API_KEY exists today; FIRECRAWL_API_KEY, AGENTMAIL_API_KEY, and AGENTMAIL_WEBHOOK_SECRET are listed as missing in PR #11 and get set when the keys arrive.
+- All four Convex env vars are set on both deployments: TYPESAFE_API_KEY, FIRECRAWL_API_KEY, AGENTMAIL_API_KEY, AGENTMAIL_WEBHOOK_SECRET. The AgentMail webhook `ep_3JZer7S7YjOnNodx6erCteo3eHF` points at `/api/agentmail` on the prod deployment; the receiving endpoint lands in r4.
 
 ## r2 Scoring engine and crawl
 
@@ -169,6 +169,8 @@ One line per deviation or call worth remembering. Newest first.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-09-20 | Registered the AgentMail webhook before r4 builds the receiving endpoint | Creating the webhook is the only way to obtain the signing secret; deliveries to `/api/agentmail` fail harmlessly until the endpoint ships in r4. |
+| 2026-09-20 | Set all four env vars (TYPESAFE, FIRECRAWL, AGENTMAIL key and webhook secret) on both deployments | Keys arrived during r1; verified each with a live call before recording it as done. |
 | 2026-09-20 | Vector index `researchDocs.by_embedding` pinned to 1536 dimensions with a `publisher` filter | No embedding model is named in the plan; 1536 is the common default. Revisit with #5 before the Wave 4 freeze. |
 | 2026-09-20 | Added a root GET route in `convex/http.ts` during r1 | `convex.site` 404s with no HTTP actions deployed, and the r1 exit requires the live URL to load signed out. The AgentMail webhook appends here in r4. |
 | 2026-09-20 | Set only TYPESAFE_API_KEY in the dashboard | Firecrawl and AgentMail keys do not exist yet; missing names are listed in the PR #11 body, no values invented. |
