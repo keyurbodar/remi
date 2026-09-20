@@ -1,4 +1,4 @@
-# JEV API — verified contract
+# JEV API: verified contract
 
 Verified with a live call on 19 Sep 2026 (see "Verified result" below).
 
@@ -14,10 +14,10 @@ Content-Type: application/json
 
 ```json
 {
-  "state": { "...application state — object, array, or plain string" },
+  "state": { "...application state: object, array, or plain string" },
   "model": "jev-latest",
   "questions": {
-    "<question-id>": { "...typed Question — id is code-only, never sent to the model" }
+    "<question-id>": { "...typed Question: id is code-only, never sent to the model" }
   }
 }
 ```
@@ -26,23 +26,23 @@ Content-Type: application/json
 
 | Type | Shape | Answer |
 |---|---|---|
-| **noul** (yes/no) | `{ type:"noul", instructions, criteria?: { true?, false? } }` | `{ type:"noul", noul: 0..1 }` — probability of yes; no separate confidence field |
-| **choice** | `{ type:"choice", instructions, criteria: { option: desc\|null } }` | `{ choice, probabilities{option: p}, confidence }` — full distribution |
+| **noul** (yes/no) | `{ type:"noul", instructions, criteria?: { true?, false? } }` | `{ type:"noul", noul: 0..1 }`. Probability of yes; no separate confidence field |
+| **choice** | `{ type:"choice", instructions, criteria: { option: desc\|null } }` | `{ choice, probabilities{option: p}, confidence }`. Full distribution |
 | **score** | `{ type:"score", instructions, criteria: [ordered levels, ≥2] }` | `{ score (probability-weighted, can land between levels), legend{}, probabilities{}, confidence }` |
 
 ## Rules (from the TypeSafe skill + docs)
 
-- Batch **independent questions over the same state** into ONE call — parallel sampling, no cross-contamination.
-- Question ids are for code only — put complete meaning in `instructions`/`criteria`.
+- Batch **independent questions over the same state** into ONE call: parallel sampling, no cross-contamination.
+- Question ids are for code only: put complete meaning in `instructions`/`criteria`.
 - Reference nested state with backticked paths: `ticket.messages[0].text`.
 - Include a no-match outcome when nothing may fit.
-- Thresholds (e.g. red-flag > 0.7) are starting points — calibrate on real sessions.
-- **API key stays server-side** — call only from Convex actions, never client bundles.
+- Thresholds (e.g. red-flag > 0.7) are starting points. Calibrate on real sessions.
+- **API key stays server-side**: call only from Convex actions, never client bundles.
 - SDK: `npm i @typesafe-ai/sdk` (Node 20+); `new TypeSafeClient()` reads `TYPESAFE_API_KEY`.
 
 ## Verified live result (19 Sep 2026)
 
-Input: word-recall item — expected "apple, penny, table", user answered "apple, table, chair", responseMs 6100.
+Input: word-recall item. Expected "apple, penny, table", user answered "apple, table, chair", responseMs 6100.
 
 ```json
 {
@@ -62,4 +62,4 @@ Read: correctly judged wrong (93% wrong) but quality = "Partial" (2/3 words righ
 
 ## Adapter
 
-`lib/jev.ts` — five functions (scoreAnswer, assessTrend, recommendEscalation, classifyReply, matchFindings). Moves into `convex/jev/` at scaffold. Fallback contract: re-implement the same five over any structured-output LLM; callers never change.
+`lib/jev.ts`: five functions (scoreAnswer, assessTrend, recommendEscalation, classifyReply, matchFindings). Moves into `convex/jev/` at scaffold. Fallback contract: re-implement the same five over any structured-output LLM; callers never change.

@@ -1,4 +1,4 @@
-# Remi — One-Day Build Plan (agent-readable export)
+# Remi: One-Day Build Plan (agent-readable export)
 
 > Source of truth: https://files.instinct.com/file-01M2X4H76KWW66XCNS67BZDNME (published revision filerevision-01M2X64ZXDCDH3J8MB45GKHJSK, 19 Sep 2026).
 > This file is the complete plan. A coding agent should be able to execute from this document alone, without browsing the site.
@@ -10,8 +10,8 @@ Build Remi for the Convex All Gas Hackathon: a browser-first app that turns memo
 - User: someone concerned about their own or a parent's memory.
 - Wedge: turn scattered worry into repeated, reviewable evidence for a doctor visit.
 - Primary UI: responsive browser app (dashboard, check-in, journal, trends, sources, reports).
-- Build mode: one continuous day, backend-first — the full backend ships and proves itself headless before any frontend is built. Two builders, module ownership, explicit merge points.
-- Team: Phase B (backend) — both in convex/: Keyur owns the scoring engine, Aether owns integrations. Phase F (frontend) — Keyur owns src/, Aether owns convex/.
+- Build mode: one continuous day, backend-first. The full backend ships and proves itself headless before any frontend is built. Two builders, module ownership, explicit merge points.
+- Team: Phase B (backend), both in convex/: Keyur owns the scoring engine, Aether owns integrations. Phase F (frontend): Keyur owns src/, Aether owns convex/.
 
 Positioning (non-negotiable): informational check-ins and appointment preparation. NOT a diagnosis, screening result, risk prediction, medical device, or emergency service. Never label tasks as MoCA or MMSE.
 
@@ -31,7 +31,7 @@ Browser (profile, tasks, journal, review, consent)
   -> Firecrawl (trusted evidence + citations)
   -> Report + AgentMail (preview, consent, delivery, reply)
 
-### Sponsor/tool responsibilities — every tool does real work
+### Sponsor/tool responsibilities: every tool does real work
 
 - Convex: auth, profiles, check-ins, responses, observations, scores, research, reports, consent, email state, workflows, crons, files, HTTP actions, static hosting, realtime sync.
 - JEV (core): scores browser tasks, computes domain and trend values, calibrates confidence, gates unsafe claims, matches typed profiles to evidence, classifies email replies.
@@ -69,7 +69,7 @@ Required indexes:
 
 Async step states (all in Convex, never hidden in logs): queued, running, succeeded, failed, retryable.
 
-## 5. Environment variables (names only — no secret values)
+## 5. Environment variables (names only, no secret values)
 
 Convex dashboard env:
 - JEV_API_KEY
@@ -85,7 +85,7 @@ Frontend .env:
 Already done: Convex account + login; JEV API key; AgentMail account.
 
 Get before Wave 1:
-- Firecrawl API key (https://firecrawl.dev) — 20k participant credits provided.
+- Firecrawl API key (https://firecrawl.dev), with 20k participant credits provided.
 - GitHub account + PUBLIC repo (private repos are explicitly not allowed).
 
 AgentMail details: inbox address, API key, inbound webhook pointing at a Convex HTTP action + webhook secret (only needed for reply capture in Wave 5; send-only works without it).
@@ -95,57 +95,57 @@ Packages: convex, @mendable/firecrawl-js, agentmail SDK, jspsych (optional, for 
 ## 7. Repo and branch boundaries (two-builder ownership)
 
 - main is always runnable. Merge only at wave exits after a smoke test. Alternate who merges. No direct pushes to main.
-- Phase B (Waves 1–4, backend first): both builders work in convex/ with strict module ownership — Keyur: assessments/, scores/, jev/, scoring workflow. Aether: observations/, research/, reports/, email/, HTTP actions, crons. src/ stays empty.
-- Phase F (Waves 5–7, frontend last): Keyur owns src/ (routes, components, styles) and never edits convex/. Aether owns convex/ fixes and integration support and never edits src/.
+- Phase B (Waves 1 to 4, backend first): both builders work in convex/ with strict module ownership. Keyur: assessments/, scores/, jev/, scoring workflow. Aether: observations/, research/, reports/, email/, HTTP actions, crons. src/ stays empty.
+- Phase F (Waves 5 to 7, frontend last): Keyur owns src/ (routes, components, styles) and never edits convex/. Aether owns convex/ fixes and integration support and never edits src/.
 - Contracts are co-owned: shared/contracts.ts (adapter signatures + doc types) and convex/schema.ts are written together in Wave 1, then frozen. Changes need both builders and land in their own commit.
 - Fixtures unblock lanes: each lane codes against fixtures mirroring the contract types so neither builder waits on the other.
 - Sync at merge points: a 10-minute call at each wave exit; demo the exit condition together, then start the next wave immediately.
 
 Adapter contract rule: jev.score, firecrawl.refresh, agentmail.send/receive all return validated internal types from shared/contracts.ts. Adapters before implementations.
 
-## 8. Execution waves (one continuous day — backend first, frontend last)
+## 8. Execution waves (one continuous day: backend first, frontend last)
 
-### Phase B — backend ships first (headless, proven from the Convex dashboard)
+### Phase B: backend ships first (headless, proven from the Convex dashboard)
 
-### Wave 1 (~1h) — Lock contracts + deploy the spine
+### Wave 1 (~1h). Lock contracts + deploy the spine
 - Needs: nothing. First 30 min together: agree doc types and adapter signatures in shared/contracts.ts and convex/schema.ts, then freeze.
 - Keyur: assessment/response/score doc shapes, JEV adapter signatures, seed/reset signatures.
 - Aether: Convex schema + indexes, workflow state enum, seed/reset functions, first deploy to convex.site, all env vars set.
 - Merge: deployed backend at the live URL with seeded data readable from the Convex dashboard.
 - Exit: signed-out live URL serves the backend; seeded docs query clean.
-- Fallback: none needed — pure backend wave.
+- Fallback: none needed. Pure backend wave.
 - Next: build the scoring engine.
 
-### Wave 2 (~2.5h) — Assessment + JEV scoring engine (headless)
+### Wave 2 (~2.5h). Assessment + JEV scoring engine (headless)
 - Needs: frozen contracts from Wave 1.
 - Keyur: JEV adapter with one real verified call, assessment/response mutations, scoring workflow (per-answer → domain rollup → trend delta), confidence gates, replay mode behind the same interface.
 - Aether: workflowRuns state tracking, typed validation, error/retry paths, mock/replay fixtures.
-- Merge: scoring pipeline contract — one workflow, states visible in workflowRuns.
-- Exit: a scripted assessment run produces persisted typed scores, domain rollups and a trend delta — verified in the dashboard, zero UI.
+- Merge: scoring pipeline contract. One workflow, states visible in workflowRuns.
+- Exit: a scripted assessment run produces persisted typed scores, domain rollups and a trend delta, verified in the dashboard, zero UI.
 - Fallback: honestly labeled JEV replay keeps the pipeline alive on outage.
 - Next: add observations and evidence.
 
-### Wave 3 (~2h) — Observations + evidence grounding (headless)
+### Wave 3 (~2h). Observations + evidence grounding (headless)
 - Needs: working scoring pipeline.
-- Keyur: insights matching — JEV profile-to-evidence matching with stored rationale codes.
+- Keyur: insights matching. JEV profile-to-evidence matching with stored rationale codes.
 - Aether: observation mutation (structured fields, raw text preserved, reviewed:false until user confirms), Firecrawl allowlist crawl → researchDocs with structured facts, citations, fetchedAt, cache; vector index.
-- Merge: insight contract — the matcher reads researchDocs and writes insights the report consumes unchanged.
-- Exit: one observation + one assessment produce matched, cited insights — headless.
+- Merge: insight contract. The matcher reads researchDocs and writes insights the report consumes unchanged.
+- Exit: one observation + one assessment produce matched, cited insights, headless.
 - Fallback: manual fields and the pre-crawled cache preserve the feature.
 - Next: turn state into deliverable reports.
 
-### Wave 4 (~2h) — Report, consent + AgentMail loop (headless) — BACKEND-DONE GATE
+### Wave 4 (~2h). Report, consent + AgentMail loop (headless). BACKEND-DONE GATE
 - Needs: scored assessments, reviewed observations, matched insights.
 - Keyur: consent logic (scope, grant, revoke blocks sends), report/consent contract wiring.
 - Aether: deterministic report builder, template-drafted clinician questions from reviewed facts only, HTML/PDF output + file storage, AgentMail send, inbound webhook → Convex HTTP action (idempotent via messages.by_agentmail_message_id), JEV reply classification, reminder crons.
 - Merge: report + consent + email contracts.
-- Exit: the full loop runs headless end-to-end — seed → assessment scored → observation reviewed → insights matched → report file generated → email sent → delivery status recorded → inbound reply classified → revoke blocks sends. Proven by a scripted run, zero UI.
+- Exit: the full loop runs headless end-to-end: seed → assessment scored → observation reviewed → insights matched → report file generated → email sent → delivery status recorded → inbound reply classified → revoke blocks sends. Proven by a scripted run, zero UI.
 - Fallback: HTML report and send-to-self preserve delivery if PDF or external recipients fail.
 - Next: schema + contracts FREEZE. Build the browser on top.
 
-### Phase F — frontend last (wires the proven backend)
+### Phase F: frontend last (wires the proven backend)
 
-### Wave 5 (~2h) — Shell, auth, dashboard + check-in UI
+### Wave 5 (~2h). Shell, auth, dashboard + check-in UI
 - Needs: frozen, deployed, headless-proven backend.
 - Keyur: app shell with all routes (dashboard, check-in, journal, trends, report), demo sign-in, check-in task UIs (recall, orientation, timed attention), per-answer autosave, live results screen with loading and low-confidence states.
 - Aether: query/mutation wiring support, realtime update checks, seeded demo data.
@@ -154,31 +154,31 @@ Adapter contract rule: jev.score, firecrawl.refresh, agentmail.send/receive all 
 - Fallback: plain task UI if jsPsych misbehaves; fixed demo user if OTP auth blocks.
 - Next: surface journal, trends and reports.
 
-### Wave 6 (~1.5h) — Journal, trends + report/consent UIs
+### Wave 6 (~1.5h). Journal, trends + report/consent UIs
 - Needs: working check-in path in the browser.
 - Keyur: journal entry + review screens with per-field correction, chronological timeline, domain charts, report preview with editable questions, consent screen showing exact report + recipient + scope, delivery status view.
 - Aether: empty/error/low-confidence/failed-send/revoked states wired to real backend states.
-- Merge: every screen renders only backend truth — no UI-local state.
+- Merge: every screen renders only backend truth, no UI-local state.
 - Exit: the full 7-step journey works in the browser, desktop + 390px.
 - Fallback: two-session seeded history exercises every state.
 - Next: break it on purpose.
 
-### Wave 7 (~2h) — Integrate, break, record + submit
+### Wave 7 (~2h). Integrate, break, record + submit
 - Needs: complete loop deployed with synthetic data.
 - Keyur (device path + record): fresh desktop and 390px mobile runs across the whole journey; record the 2:50 demo; post on X or LinkedIn tagging @convex, @OpenAI, @firecrawl, @agentmail.
-- Aether (failure path + submit): duplicate webhook, JEV timeout, stale crawl, revoked consent, failed send; finish the public repo — README, setup steps, hackathon.md (what you built, stack, live URL, demo link); verify the signed-out URL; submit at vibeapps.dev.
+- Aether (failure path + submit): duplicate webhook, JEV timeout, stale crawl, revoked consent, failed send; finish the public repo: README, setup steps, hackathon.md (what you built, stack, live URL, demo link); verify the signed-out URL; submit at vibeapps.dev.
 - Merge: one shared defect list; each defect fixed in its owner lane only; both walk the official submission checklist before anyone hits submit.
 - Exit: two end-to-end rehearsals finish under three minutes; app, repo, video, social post, submission receipt all verified.
 - Fallback: demo reset plus pre-seeded history makes the live path repeatable; submit the last verified deployed revision, never an untested late build.
 
-Freeze rules: schema + contracts freeze when Wave 4 exits (backend done — the frontend builds only against frozen types); routes freeze when Wave 7 starts. After freezes: fix only failures that block the recorded end-to-end path.
+Freeze rules: schema + contracts freeze when Wave 4 exits (backend done: the frontend builds only against frozen types); routes freeze when Wave 7 starts. After freezes: fix only failures that block the recorded end-to-end path.
 
 ## 9. Acceptance criteria (definition of done)
 
 A user can enter through the browser, complete a check-in, see JEV-backed results, add and correct a real-life observation, review an evidence-backed trend, generate a consented visit brief, and receive it through AgentMail. The demo proves the live path and one failure path. The repo explains which fallback was used, if any. Nothing is implied or faked.
 
 Product readiness checklist:
-0. The backend loop runs headless end-to-end (seed → scored → matched → report → sent → classified → revoked) before any UI exists — Wave 4 exit gate.
+0. The backend loop runs headless end-to-end (seed → scored → matched → report → sent → classified → revoked) before any UI exists, the Wave 4 exit gate.
 1. Browser app works end to end on mobile and desktop from a fresh session.
 2. A full check-in persists each response and shows a real JEV-backed result.
 3. JEV adapter covers scoring, trend/confidence and reply classification with a visible version.
@@ -207,14 +207,14 @@ A fallback changes the implementation path, never the product promise:
 
 ## 11. Demo script (2:50, under the 3-minute limit)
 
-- 0:00–0:15 — "Memory concerns are hard to describe at an appointment. Remi turns browser check-ins and real-life observations into a reviewed, evidence-backed visit brief. It does not diagnose."
-- 0:15–0:40 — Open browser dashboard, start a short check-in; complete recall and one timed task; show each response saving live.
-- 0:40–1:00 — Finish check-in; show JEV typed domain result, confidence gate, immediate Convex reactive update.
-- 1:00–1:25 — Add a structured journal entry (repeated questions, poor sleep, medicine change) with the raw note preserved; show JEV classification beside it; correct one field.
-- 1:25–1:50 — Open trends; show session delta, one low-confidence label, a JEV-matched Firecrawl citation with publisher and fetched time.
-- 1:50–2:20 — Create the visit brief; show scores, lived observations, caveats, official sources, editable clinician questions.
-- 2:20–2:40 — Preview consent, send to self via AgentMail, show Convex delivery changing queued → sent; mention optional email capture as a supporting path.
-- 2:40–2:50 — Flash the architecture: browser → Convex → JEV → Firecrawl → consented AgentMail delivery.
+- 0:00 to 0:15: "Memory concerns are hard to describe at an appointment. Remi turns browser check-ins and real-life observations into a reviewed, evidence-backed visit brief. It does not diagnose."
+- 0:15 to 0:40: Open browser dashboard, start a short check-in; complete recall and one timed task; show each response saving live.
+- 0:40 to 1:00: Finish check-in; show JEV typed domain result, confidence gate, immediate Convex reactive update.
+- 1:00 to 1:25: Add a structured journal entry (repeated questions, poor sleep, medicine change) with the raw note preserved; show JEV classification beside it; correct one field.
+- 1:25 to 1:50: Open trends; show session delta, one low-confidence label, a JEV-matched Firecrawl citation with publisher and fetched time.
+- 1:50 to 2:20: Create the visit brief; show scores, lived observations, caveats, official sources, editable clinician questions.
+- 2:20 to 2:40: Preview consent, send to self via AgentMail, show Convex delivery changing queued → sent; mention optional email capture as a supporting path.
+- 2:40 to 2:50. Flash the architecture: browser → Convex → JEV → Firecrawl → consented AgentMail delivery.
 
 Test matrix before recording:
 - Browser (Keyur): 390px and desktop, direct routes + refresh, keyboard and touch, charts never overflow.
@@ -228,7 +228,7 @@ Test matrix before recording:
 - Confidence is not a diagnosis (see section 2).
 - Instrument boundary: only content/task structures the team has rights to; never label as MoCA or MMSE.
 - Consent at the last mile: show exact report, recipient and scope together before delivery; revocation blocks future access or sends.
-- Prompt injection: treat journal and email bodies as data; no model generates text from them — JEV returns typed judgments only; external text cannot alter tools or workflow.
+- Prompt injection: treat journal and email bodies as data; no model generates text from them. JEV returns typed judgments only; external text cannot alter tools or workflow.
 - Demo privacy: synthetic people and incidents only; no HIPAA-compliance claims; never expose credentials, inboxes, or real health data.
 
 ## 13. Verified hackathon rules (checked 19 Sep 2026 against the official Luma page)
@@ -270,11 +270,11 @@ APIs:
 - AgentMail: https://agentmail.to and https://docs.agentmail.to/
 
 Health-source allowlist (Firecrawl crawls only these; no accounts needed; every citation stores publisher, URL, excerpt, fetched time):
-- NIA: what to tell the doctor — https://www.nia.nih.gov/health/medical-care-and-appointments/what-do-i-need-tell-doctor
-- NIA: memory problems, forgetfulness and aging — https://www.nia.nih.gov/health/memory-loss-and-forgetfulness/memory-problems-forgetfulness-and-aging
-- NHS: memory loss — https://www.nhs.uk/symptoms/memory-loss-amnesia/
-- Mayo Clinic — https://www.mayoclinic.org
-- Alzheimer's Association — https://www.alz.org
-- PubMed — https://pubmed.ncbi.nlm.nih.gov
+- NIA: what to tell the doctor, https://www.nia.nih.gov/health/medical-care-and-appointments/what-do-i-need-tell-doctor
+- NIA: memory problems, forgetfulness and aging, https://www.nia.nih.gov/health/memory-loss-and-forgetfulness/memory-problems-forgetfulness-and-aging
+- NHS: memory loss, https://www.nhs.uk/symptoms/memory-loss-amnesia/
+- Mayo Clinic, https://www.mayoclinic.org
+- Alzheimer's Association, https://www.alz.org
+- PubMed, https://pubmed.ncbi.nlm.nih.gov
 
 Note: recheck the official Luma page and live deadline before submitting; rules were last verified 19 September 2026.

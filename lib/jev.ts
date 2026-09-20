@@ -1,5 +1,5 @@
 /**
- * JEV adapter — NeuroCheck's single interface to TypeSafe System One.
+ * JEV adapter: Remi's single interface to TypeSafe System One.
  *
  * SETUP (Day 0):
  *   1. npm i @typesafe-ai/sdk          (Node 20+)
@@ -12,22 +12,22 @@
  *     (API key stays server-side, never in client bundles).
  *   - This file is the Day-0 contract: Keyur (scoring) and Aether
  *     (classification) both go through it. Fallback: if JEV access lapses,
- *     re-implement these five functions over any structured-output LLM —
+ *     re-implement these five functions over any structured-output LLM,
  *     callers must not change.
  *   - Independent questions over the same state are batched into ONE
  *     systemOne call (parallel sampling, no cross-contamination).
  *
  * Primitives used (per docs.typesafe.ai):
- *   noul  — yes/no probability (no separate confidence field)
- *   choice — one of a defined set + full distribution + confidence
- *   score  — probability-weighted level on an ordered rubric + confidence
+ *   noul:   yes/no probability (no separate confidence field)
+ *   choice: one of a defined set + full distribution + confidence
+ *   score:  probability-weighted level on an ordered rubric + confidence
  */
 import { choice, noul, score, TypeSafeClient } from "@typesafe-ai/sdk";
 
 const client = new TypeSafeClient(); // reads TYPESAFE_API_KEY
 
 // ---------------------------------------------------------------------------
-// 1) Per-answer scoring (Lane A — check-in loop, ~70ms per call)
+// 1) Per-answer scoring (Lane A: check-in loop, ~70ms per call)
 // ---------------------------------------------------------------------------
 
 export type AnswerScore = {
@@ -42,7 +42,7 @@ export type AnswerScore = {
 export async function scoreAnswer(input: {
   domain: "memory" | "attention" | "language" | "visuospatial" | "speed";
   question: string;
-  /** omitted for open-ended items — JEV judges quality, not exact match */
+  /** omitted for open-ended items: JEV judges quality, not exact match */
   correctAnswer?: string;
   userAnswer: string;
   /** client-measured, from jsPsych trial data */
@@ -54,7 +54,7 @@ export async function scoreAnswer(input: {
     state: {
       domain: input.domain,
       question: input.question,
-      expected: input.correctAnswer ?? "(open response — judge quality, not exact match)",
+      expected: input.correctAnswer ?? "(open response: judge quality, not exact match)",
       userAnswer: input.userAnswer,
       responseMs: input.responseMs ?? null,
       trend: input.priorTrend ?? "first session",
@@ -73,10 +73,10 @@ export async function scoreAnswer(input: {
       ),
       quality: score("Rate the overall quality of this answer.", [
         "No answer or incoherent",
-        "Poor — mostly incorrect",
-        "Partial — some elements right",
-        "Good — correct, unremarkable speed",
-        "Excellent — correct and quick",
+        "Poor: mostly incorrect",
+        "Partial: some elements right",
+        "Good: correct, unremarkable speed",
+        "Excellent: correct and quick",
       ]),
     },
   });
@@ -88,7 +88,7 @@ export async function scoreAnswer(input: {
 }
 
 // ---------------------------------------------------------------------------
-// 2) Trend delta across sessions (Lane A — trend dashboard)
+// 2) Trend delta across sessions (Lane A: trend dashboard)
 // ---------------------------------------------------------------------------
 
 export type TrendAssessment = {
@@ -126,7 +126,7 @@ export async function assessTrend(input: {
 }
 
 // ---------------------------------------------------------------------------
-// 3) Escalation recommendation (Lane A — results screen, confidence-gated)
+// 3) Escalation recommendation (Lane A: results screen, confidence-gated)
 // ---------------------------------------------------------------------------
 
 export type Escalation = {
@@ -151,9 +151,9 @@ export async function recommendEscalation(input: {
         },
       ),
       urgency: score("How soon should they seek professional evaluation?", [
-        "Routine — mention at next scheduled visit",
-        "Soon — within weeks",
-        "Promptly — within days",
+        "Routine: mention at next scheduled visit",
+        "Soon: within weeks",
+        "Promptly: within days",
       ]),
     },
   });
@@ -167,7 +167,7 @@ export async function recommendEscalation(input: {
 }
 
 // ---------------------------------------------------------------------------
-// 4) Inbound reply classification (Lane B — AgentMail webhook → record)
+// 4) Inbound reply classification (Lane B: AgentMail webhook → record)
 // ---------------------------------------------------------------------------
 
 export type ReplyClassification = {
@@ -178,7 +178,7 @@ export type ReplyClassification = {
     | "positive_update"
     | "logistics";
   confidence: number;
-  /** true for sudden/severe changes — overrides normal flow, shows care card */
+  /** true for sudden/severe changes: overrides normal flow, shows care card */
   redFlag: boolean;
 };
 
@@ -213,7 +213,7 @@ export async function classifyReply(input: {
 }
 
 // ---------------------------------------------------------------------------
-// 5) Research-relevance matching (Lane B — citations panel)
+// 5) Research-relevance matching (Lane B: citations panel)
 //    One noul per finding, ALL batched in a single call over the same state.
 //    Jev supports high-cardinality question maps; keep batches < 100.
 // ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 Remi turns memory concerns into repeated, reviewable, evidence-backed preparation for a doctor visit. A person worried about their own or a parent's memory runs a five minute check-in, journals real incidents, watches trends, and leaves with a doctor-ready brief. Built for the Convex All Gas Hackathon. Submit at vibeapps.dev before Sept 22, 12:00 PM PT (Sept 23, 12:30 AM IST).
 
-I build this solo. The execution plan lives in `docs/plan.txt` and is the source of truth. References live in `refs/`. Read those before guessing at intent.
+I build this solo. The execution plan lives in `docs/plan.md` and is the source of truth. Execution state lives in `checklist.md`. References live in `refs/`. Read those before guessing at intent.
 
 ## Positioning (never break this)
 
@@ -23,6 +23,8 @@ Every task ships through the same loop, regardless of size.
 4. Deploy to convex.site and confirm the live URL serves the change.
 5. Update `hackathon.md` via /hackathon so the judge-facing build log stays current.
 6. Record the trail with /skill:show-me-your-work.
+
+Track all of it in `checklist.md`. Check items off as they land, add one line under the round's Notes when something deviates, and log the call in the decision table when it changes the plan. A round is done only when its whole block is checked, including the runtime line. Do not start the next round with an unchecked box behind you.
 
 ## Verification
 
@@ -54,7 +56,8 @@ Backend ships first and proves itself headless (Waves 1 to 4). Frontend wires th
 
 ```
 remi/
-├── docs/plan.txt         # execution plan, source of truth
+├── docs/plan.md          # execution plan, source of truth
+├── checklist.md          # round by round execution state, notes live here
 ├── refs/                 # resources.md, jev-api.md, integrations.md
 ├── lib/jev.ts            # JEV adapter, moves into convex/jev/ at scaffold
 ├── shared/contracts.ts   # adapter signatures + doc types, frozen after Wave 1
@@ -101,7 +104,8 @@ remi/
 
 ## References
 
-- Plan: `docs/plan.txt`. Waves, ownership, acceptance criteria, freeze rules.
+- Plan: `docs/plan.md`. Waves, ownership, acceptance criteria, freeze rules.
+- Checklist: `checklist.md`. Rounds, issue checkboxes, and the notes log.
 - `refs/resources.md` for cognitive content sources, the crawl allowlist, and links.
 - `refs/jev-api.md` for the verified JEV contract.
 - `refs/integrations.md` for Firecrawl, AgentMail, and Convex notes.
