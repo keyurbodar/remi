@@ -16,17 +16,19 @@ Check items off as they land. When something deviates, add one line under that r
 
 Issues #1. Owners both.
 
-- [ ] `shared/contracts.ts` frozen. Adapter signatures and document types.
-- [ ] `convex/schema.ts` frozen. Tables, indexes, vector index on `researchDocs`.
-- [ ] `convex/seed.ts` with seed and reset for one synthetic subject.
-- [ ] Convex project created, every env var set in the dashboard.
-- [ ] Static. `npx tsc --noEmit` clean.
-- [ ] Runtime. Seed runs, every table queries clean, the `convex.site` URL loads signed out.
+- [x] `shared/contracts.ts` frozen. Adapter signatures and document types.
+- [x] `convex/schema.ts` frozen. Tables, indexes, vector index on `researchDocs`.
+- [x] `convex/seed.ts` with seed and reset for one synthetic subject.
+- [x] Convex project created, every env var set in the dashboard.
+- [x] Static. `npx tsc --noEmit` clean.
+- [x] Runtime. Seed runs, every table queries clean, the `convex.site` URL loads signed out.
 - [ ] PR merged and both builders pulled.
 
 Gate. Every later round is blocked until this lands. Do not start r2 early.
 
 Notes
+
+- Only TYPESAFE_API_KEY exists today; FIRECRAWL_API_KEY, AGENTMAIL_API_KEY, and AGENTMAIL_WEBHOOK_SECRET are listed as missing in PR #11 and get set when the keys arrive.
 
 ## r2 Scoring engine and crawl
 
@@ -167,3 +169,6 @@ One line per deviation or call worth remembering. Newest first.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-09-20 | Vector index `researchDocs.by_embedding` pinned to 1536 dimensions with a `publisher` filter | No embedding model is named in the plan; 1536 is the common default. Revisit with #5 before the Wave 4 freeze. |
+| 2026-09-20 | Added a root GET route in `convex/http.ts` during r1 | `convex.site` 404s with no HTTP actions deployed, and the r1 exit requires the live URL to load signed out. The AgentMail webhook appends here in r4. |
+| 2026-09-20 | Set only TYPESAFE_API_KEY in the dashboard | Firecrawl and AgentMail keys do not exist yet; missing names are listed in the PR #11 body, no values invented. |
