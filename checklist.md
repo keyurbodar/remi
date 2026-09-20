@@ -104,7 +104,8 @@ Issues #7 keyur, #6 aether.
 - [x] Query for current consent state per subject.
 - [x] Static. `npx tsc --noEmit` clean.
 - [x] Runtime. Grant, send, revoke, blocked second send. The revoked row keeps its original scope.
-- [ ] PR merged.
+- [x] PR merged (#14, squash), deployed to prod, live URL verified.
+- [x] Independent review passed. 18/18 runtime assertions on the isolated deployment, including report-scoped revoke blocking a send with two live grants, recipient and scope mismatch refusals, and re-grant after revoke. Branch force-with-lease synced: the agent's final eight commits were local-only.
 
 ### #6 Build the visit report and deliver it by email
 
