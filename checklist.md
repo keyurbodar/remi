@@ -103,12 +103,13 @@ Issues #7 keyur, #6 aether.
 
 ### #7 Gate every send behind explicit consent
 
-- [ ] `convex/consents/` grant with scope, revoke, and the guard the send path calls.
-- [ ] The record stores the exact report, recipient, and scope shown at grant time.
-- [ ] Query for current consent state per subject.
-- [ ] Static. `npx tsc --noEmit` clean.
-- [ ] Runtime. Grant, send, revoke, blocked second send. The revoked row keeps its original scope.
-- [ ] PR merged.
+- [x] `convex/consents/` grant with scope, revoke, and the guard the send path calls.
+- [x] The record stores the exact report, recipient, and scope shown at grant time.
+- [x] Query for current consent state per subject.
+- [x] Static. `npx tsc --noEmit` clean.
+- [x] Runtime. Grant, send, revoke, blocked second send. The revoked row keeps its original scope.
+- [x] PR merged (#14, squash), deployed to prod, live URL verified.
+- [x] Independent review passed. 18/18 runtime assertions on the isolated deployment, including report-scoped revoke blocking a send with two live grants, recipient and scope mismatch refusals, and re-grant after revoke. Branch force-with-lease synced: the agent's final eight commits were local-only.
 
 ### #6 Build the visit report and deliver it by email
 
@@ -129,6 +130,14 @@ Issues #7 keyur, #6 aether.
 - [ ] Schema and contracts frozen. No further edits without both builders.
 
 Notes
+
+- #7 runtime evidence. `npm run verify:consent` against the isolated dev deployment `keyur-bodar19:remi:dev/keyur/r4-consent` passed 18/18 assertions. The guard is an `internalQuery` (`consents/guard:requireConsent`) because #6 calls it from the send action through `ctx.runQuery`; the script drives it through the Convex CLI, the only transport that reaches internal functions, and reads the refusal out of the typed `ConvexError` payload (`{"code":"consent_revoked","reportId":"..."}`) rather than out of a message string. Observed in order: `consent_missing` before any grant, the granted triple admitted and echoing the live consent id, `recipient_mismatch` for a different address, `scope_mismatch` for a different scope, `consent_revoked` on the second send, and the revoked row still reading scope `email the visit brief to the caregiver` with its original `grantedAt`.
+- #7 revoke is report-scoped, and that is a fix, not a preference. An adversarial review found that a revoke taking one `consentId` left a second live grant for the same report open, so a send still went out after the person revoked. Reproduced against the old code: two grants, revoke the first, and the guard returned a receipt instead of refusing. The fix takes `reportId` and closes every live row in one call, and the same sequence now refuses with `consent_revoked`. The regression is asserted in the suite.
+- #7 review fixes, all verified live. `latestGrant` compares with `>=` so equal `grantedAt` values resolve to the newest row rather than the oldest (`_creationTime` is function start time, not commit order, so it is not a better key). The guard reports a report that does not exist as `Unknown report: <id>` instead of the `recipient_mismatch` refusal code #6 branches on. `grant` refuses a report whose status is not `final`, so consent is never recorded against a recipient that can still change.
+- #7 send line reads as the guard, not as AgentMail. Issue #6 owns `convex/email/send.ts` and has not landed, so the "send succeeds" half of the runtime line is the guard admitting the send it gates. The suite proves what the gate decides; it cannot prove #6 calls it with the same recipient and scope it sends, and #6's own runtime line carries that.
+- #7 recipient binding. The frozen `consents` table carries no recipient column, so the guard binds the address through `reports.recipient` and `grant` refuses when the address it is handed is not the address on the report. A grant cannot be shown one address and store another, and a report whose recipient changes after the grant would move the consented address with no row recording it, which is why `grant` requires a `final` report.
+- #7 deviations. `convex/consents/fixtures.ts` stages a report and a second subject so the consent flow can be proven headless before #6 lands; both are internal mutations, unreachable from the app, and #6 replaces the report fixture with the real builder. The guard signature was committed first (`dfc1109`) because #6 depends on it. `verify-consent.ts` aborts before seeding when `CONVEX_URL` and `CONVEX_DEPLOYMENT` disagree, because `seed:seed` clears all twelve tables on whichever deployment the client names.
+- #7 gaps. Prod deploy is deferred to the r4 merge so #7 and #6 land together, the same call r2 made; the isolated deployment is the runtime evidence. `/hackathon` and `/skill:show-me-your-work` are not installed in this worktree, so `hackathon.md` was updated by hand.
 
 ## r5 Frontend and ship
 
@@ -184,11 +193,7 @@ One line per deviation or call worth remembering. Newest first.
 
 || Date | Decision | Why |
 |---|---|---|
-| 2026-09-20 | The durable run records its own trail in `workflowRuns` and does not read the workflow component's tables | The issue asks for every transition in the database, and the component's journal is a step record, not a state machine the results screen or a verification script can read as queued, running, succeeded, failed, retryable. `convex/workflowRuns/trail.ts` returns that trail oldest first; the frozen schema carries no index on the table, so it filters in memory over one deployment's rows. |
-| 2026-09-20 | Retry is written in the workflow handler, not delegated to the component's `retry: true` | Each attempt has to be a row with its own `attempt` number, which is the shape the frozen `workflowRuns` table declares and the shape that makes a third-party outage readable. The step itself runs with `retry: false` so one attempt writes exactly one row, and the handler writes `retryable` with the model's error before the next attempt starts. |
-| 2026-09-20 | The #3 failure fixture is a rejected `TYPESAFE_API_KEY` on the deployment, set and restored by the suite | The Convex action reads the key from the deployment, never from the script's environment, so the only way to make JEV answer 401 is to change the deployment var. The suite saves the key, sets a rejected value with `convex env set --deployment`, runs the pipeline, and restores it in a `finally`, so the failure is the model's own answer rather than a simulated throw. |
-| 2026-09-20 | The scoring workflow scores only responses that carry no `accuracy` | A durable pipeline gets triggered again by a retry or a second tap, and re-scoring an answer would double every downstream rollup. Selecting on the missing score makes a re-triggered run a no-op that still writes its trail: 7 rows, no score step, and the same six scores in the database. |
-| 2026-09-20 | `convex/workflowRuns/trail.ts` calls the scoring action through `api`, not `internal` | `jev/scoreAnswer:scoreResponse` is a public action the check-in flow calls per answer, so the typed step boundary reaches it through the public reference. `internal.jev.scoreAnswer` has no `scoreResponse` entry, and the first verification run failed on exactly that. |
+{"path": "conflict://1", "content": "@both"}
 | 2026-09-20 | The matcher names each finding by its state path inside the JEV question | The batched noul asked about "this finding" over a state holding every finding, so the model answered a coin flip for the batch: 0.71 and 0.70 on a relevant page and an off-topic page, both over the cutoff, which would have matched osteoarthritis guidance to a memory concern. Naming the path (`findings[2]`) moved the same two to 0.97 and 0.04. Fixed in `convex/jev/adapter.ts`, the only edit outside #5's named files. |
 | 2026-09-20 | #5 fixtures are synthetic `researchDocs` rows seeded through an internal mutation reached by the CLI | The #4 crawler has not merged, so the runtime check needs stand-in documents. Internal keeps a fixture out of the public API surface, and the suite shells out to `convex run` for that one step because a Convex client cannot reach an internal function. Real crawled rows replace them when #4 lands. |
 | 2026-09-20 | The evidence matcher does no vector retrieval, and caps its JEV batch at 99 candidates | JEV judges relevance over the profile, so a vector pre-filter would be a second, redundant judgment on the same question, and `researchDocs.embedding` is left unset until an embedding model is chosen. The cap keeps one `systemOne` call inside the adapter's documented batch size. |

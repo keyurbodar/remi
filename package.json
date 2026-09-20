@@ -7,7 +7,8 @@
     "typecheck": "tsc --noEmit",
     "verify:scoring": "node --env-file=.env.local scripts/verify-scoring.ts",
     "verify:insights": "node --env-file=.env.local scripts/verify-insights.ts",
-    "verify:workflow": "node --env-file=.env.local scripts/verify-workflow.ts"
+    "verify:workflow": "node --env-file=.env.local scripts/verify-workflow.ts",
+    "verify:consent": "node --env-file=.env.local scripts/verify-consent.ts"
   },
   "dependencies": {
     "@convex-dev/workflow": "^0.4.8",
