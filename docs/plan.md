@@ -72,7 +72,7 @@ Async step states (all in Convex, never hidden in logs): queued, running, succee
 ## 5. Environment variables (names only, no secret values)
 
 Convex dashboard env:
-- JEV_API_KEY
+- TYPESAFE_API_KEY (the TypeSafe SDK reads this name by default)
 - FIRECRAWL_API_KEY
 - AGENTMAIL_API_KEY
 - AGENTMAIL_WEBHOOK_SECRET
