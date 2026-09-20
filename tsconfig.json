@@ -11,5 +11,5 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["convex/**/*", "shared/**/*", "lib/**/*"]
+  "include": ["convex/**/*", "shared/**/*", "scripts/**/*"]
 }

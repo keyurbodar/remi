@@ -62,4 +62,4 @@ Read: correctly judged wrong (93% wrong) but quality = "Partial" (2/3 words righ
 
 ## Adapter
 
-`lib/jev.ts`: five functions (scoreAnswer, assessTrend, recommendEscalation, classifyReply, matchFindings). Moves into `convex/jev/` at scaffold.
+`convex/jev/adapter.ts`: five functions (scoreAnswer, assessTrend, recommendEscalation, classifyReply, matchFindings). Convex actions are its only callers.

@@ -38,13 +38,13 @@ Issues #2 keyur, #4 aether. Parallel, disjoint modules.
 
 ### #2 Score check-in answers with JEV
 
-- [ ] `convex/jev/adapter.ts` with the five functions, typed against contracts.
-- [ ] `convex/jev/scoreAnswer.ts`, one JEV call per answer.
-- [ ] `convex/assessments/` start, submit, finish.
-- [ ] `convex/scores/` domain rollup and cross-session trend delta.
-- [ ] Confidence gate sets `lowConfidence` instead of a number below threshold.
-- [ ] Static. `npx tsc --noEmit` clean.
-- [ ] Runtime. Scripted assessment persists scores carrying `modelVersion` `jev-1.13.0`, a wrong answer scores low, a weak answer gates.
+- [x] `convex/jev/adapter.ts` with the five functions, typed against contracts.
+- [x] `convex/jev/scoreAnswer.ts`, one JEV call per answer.
+- [x] `convex/assessments/` start, submit, finish.
+- [x] `convex/scores/` domain rollup and cross-session trend delta.
+- [x] Confidence gate sets `lowConfidence` instead of a number below threshold.
+- [x] Static. `npx tsc --noEmit` clean.
+- [x] Runtime. Scripted assessment persists scores carrying `modelVersion` `jev-1.13.0`, a wrong answer scores low, a weak answer gates.
 - [ ] PR merged.
 
 ### #4 Crawl trusted sources and capture journal observations
@@ -58,6 +58,11 @@ Issues #2 keyur, #4 aether. Parallel, disjoint modules.
 - [ ] PR merged.
 
 Notes
+
+- #2 runtime evidence. `npm run verify:scoring` against the isolated dev deployment `keyur-bodar19:remi:dev/keyur/r2-scoring` ran two six-item sessions through the real pipeline (submit, one JEV call, finish) and passed 18/18 assertions. Session B rows read from the dashboard: memory 0.97 `answer_incorrect`, attention 3.35 and 3.44 `answer_correct`, language 2.92, visuospatial 3.75, speed 2.75 at confidence 0.62 gated. Every row carries `modelVersion` `jev-1.13.0`. Domain rollup: attention 3.4 over 2 answers, speed `null` with `insufficient_evidence`. Trend delta: attention -0.02 `declining` over 2 sessions.
+- #2 gate fixture is calibrated, not tuned to pass. JEV's correctness probability on the timed item is a smooth function of response time (320 ms -> 0.89, 460 ms -> 0.54 to 0.58, 900 ms -> 0.17), so 460 ms is the middle of the gate band with a 0.12 margin under the 0.7 threshold. The gate fires on real model uncertainty, and the solid visuospatial answer at 0.95 proves the gate discriminates.
+- #2 deviations. `lib/jev.ts` was deleted rather than kept beside `convex/jev/adapter.ts`, and `tsconfig.json` now includes `scripts/**/*` in its place. The domain rollup and trend delta are read paths over the per-answer `scores` rows, not separate persisted rows. The runtime line was verified on the isolated dev deployment; prod deploy waits for the r2 merge so #2 and #4 land together.
+- #2 gaps. `hackathon.md` and `/hackathon` are not installed in this worktree, so the judge-facing build log was not updated from this lane.
 
 ## r3 Insights and pipeline state
 
@@ -171,6 +176,11 @@ One line per deviation or call worth remembering. Newest first.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-09-20 | Pinned `@typesafe-ai/sdk` to `^0.6.0` | `package.json` asked for `^1.0.0`, which npm does not publish (latest is 0.6.0). The r1 lockfile already resolved 0.6.0, so the manifest now matches the installed SDK and the adapter API that `refs/jev-api.md` verified. |
+| 2026-09-20 | Deleted `lib/jev.ts` in favour of `convex/jev/adapter.ts`, and swapped `lib/**/*` for `scripts/**/*` in the tsconfig include | The adapter moves into the Convex backend at scaffold; keeping the Day-0 copy beside it would be a second code path for the same JEV contract, and `lib/` held nothing else. |
+| 2026-09-20 | Domain rollup and trend delta are read paths over the per-answer `scores` rows, not separate persisted rows | One row per scored answer keeps the confidence gate, the domain rollup and the trend derived from the same evidence, and lets a trend recompute when a session is re-read. Revisit with #3 if the durable pipeline wants stored rollups. |
+| 2026-09-20 | #2 runtime verified on the isolated dev deployment, prod deploy deferred to the r2 merge | #2 and #4 ship together as r2. Deploying one lane mid-round would put a half-scored backend in front of the live URL. |
+| 2026-09-20 | Gate fixture is a 460 ms reaction time on the timed item | Calibrated live rather than tuned to pass: JEV's correctness probability there measures 0.54 to 0.58, so the gate fires on genuine model uncertainty with a 0.12 margin under the threshold, and the 0.95 solid answer proves the gate discriminates. |
 | 2026-09-20 | Ship env to collaborators via dotenvx encrypted `.env`, committed to the repo | Both builders need the four keys locally; encryption lets the repo carry them while `.env.keys` stays private. Replaces "secrets never in the repo" with "never commit plaintext secrets". |
 | 2026-09-20 | Registered the AgentMail webhook before r4 builds the receiving endpoint | Creating the webhook is the only way to obtain the signing secret; deliveries to `/api/agentmail` fail harmlessly until the endpoint ships in r4. |
 | 2026-09-20 | Set all four env vars (TYPESAFE, FIRECRAWL, AGENTMAIL key and webhook secret) on both deployments | Keys arrived during r1; verified each with a live call before recording it as done. |
