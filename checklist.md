@@ -169,6 +169,7 @@ One line per deviation or call worth remembering. Newest first.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-09-20 | Ship env to collaborators via dotenvx encrypted `.env`, committed to the repo | Both builders need the four keys locally; encryption lets the repo carry them while `.env.keys` stays private. Replaces "secrets never in the repo" with "never commit plaintext secrets". |
 | 2026-09-20 | Registered the AgentMail webhook before r4 builds the receiving endpoint | Creating the webhook is the only way to obtain the signing secret; deliveries to `/api/agentmail` fail harmlessly until the endpoint ships in r4. |
 | 2026-09-20 | Set all four env vars (TYPESAFE, FIRECRAWL, AGENTMAIL key and webhook secret) on both deployments | Keys arrived during r1; verified each with a live call before recording it as done. |
 | 2026-09-20 | Vector index `researchDocs.by_embedding` pinned to 1536 dimensions with a `publisher` filter | No embedding model is named in the plan; 1536 is the common default. Revisit with #5 before the Wave 4 freeze. |

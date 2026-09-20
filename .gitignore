@@ -1,4 +1,6 @@
-.env
+# .env is encrypted in place by dotenvx and safe to commit.
+# .env.keys holds private decryption keys and must never be committed.
+.env.keys
 .env.*
 !.env.example
 

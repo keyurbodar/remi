@@ -90,7 +90,7 @@ remi/
 - Convex owns all state, logic, realtime, crons, files, http actions. Frontend deploys to convex.site. No localhost submissions.
 - Firecrawl crawls only the allowlisted health sources in `refs/resources.md`. Every citation stores publisher, URL, excerpt, fetchedAt.
 - AgentMail sends with idempotency keys. The inbound webhook verifies signatures before touching data.
-- Env vars live in the Convex dashboard, never in the repo. TYPESAFE_API_KEY, FIRECRAWL_API_KEY, AGENTMAIL_API_KEY, AGENTMAIL_WEBHOOK_SECRET, VITE_CONVEX_URL.
+- Env vars live in the Convex dashboard and ship to collaborators through the encrypted `.env` (dotenvx). Never commit plaintext secrets or `.env.keys`. TYPESAFE_API_KEY, FIRECRAWL_API_KEY, AGENTMAIL_API_KEY, AGENTMAIL_WEBHOOK_SECRET, VITE_CONVEX_URL.
 
 ## Taste
 
