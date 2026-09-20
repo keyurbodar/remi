@@ -6,7 +6,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "verify:scoring": "node --env-file=.env.local scripts/verify-scoring.ts",
-    "verify:insights": "node --env-file=.env.local scripts/verify-insights.ts"
+    "verify:insights": "node --env-file=.env.local scripts/verify-insights.ts",
+    "verify:consent": "node --env-file=.env.local scripts/verify-consent.ts"
   },
   "dependencies": {
     "@typesafe-ai/sdk": "^0.6.0",
