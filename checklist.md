@@ -154,7 +154,7 @@ Notes
 
 ## Submission
 
-- [ ] Repo flipped back to public. It is private as of this writing, and private repos are not allowed.
+- [ ] Repo is public at submission time. Private repos are not allowed.
 - [ ] Live URL on `convex.site` opens signed out.
 - [ ] Video under three minutes attached.
 - [ ] Social post tagging @convex @[OI] @firecrawl @agentmail.
