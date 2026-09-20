@@ -84,7 +84,8 @@ Issues #5 keyur, #3 aether. Each consumes the other lane's r2 output.
 - [x] Error and retry paths with typed validation at the action boundary.
 - [x] Static. `npx tsc --noEmit` clean.
 - [x] Runtime. A run shows its full state trail, and an invalid key lands retryable then failed with the error recorded.
-- [ ] PR merged.
+- [x] PR merged (#15, squash), deployed to prod with the workflow component installed, live URL verified.
+- [x] Independent review passed. 20/20 runtime assertions: a healthy run leaves a 19-row trail ending succeeded with six scores, a re-triggered run double-scores nothing, and a forced JEV failure (rejected deployment key, restored in the suite) lands retryable, retryable, failed with the 401 recorded on both the step row and the run row and the rollup never reached.
 
 Notes
 
