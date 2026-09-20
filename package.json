@@ -4,13 +4,15 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:scoring": "node --env-file=.env.local scripts/verify-scoring.ts"
   },
   "dependencies": {
-    "@typesafe-ai/sdk": "^1.0.0",
+    "@typesafe-ai/sdk": "^0.6.0",
     "convex": "^1.28.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.2",
     "typescript": "^5.9.0"
   }
 }

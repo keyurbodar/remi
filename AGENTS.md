@@ -59,12 +59,12 @@ remi/
 ├── docs/plan.md          # execution plan, source of truth
 ├── checklist.md          # round by round execution state, notes live here
 ├── refs/                 # resources.md, jev-api.md, integrations.md
-├── lib/jev.ts            # JEV adapter, moves into convex/jev/ at scaffold
 ├── shared/contracts.ts   # adapter signatures + doc types, frozen after Wave 1
 ├── convex/               # backend, Phase B
 │   ├── schema.ts         # tables + indexes, the only shared surface
-│   ├── jev/              # adapter + scoring workflow
+│   ├── jev/              # adapter + per-answer scoring
 │   ├── assessments/      # check-in mutations + queries
+│   ├── scores/           # domain rollup + cross-session trend
 │   ├── observations/     # journal entries, structured fields + raw note
 │   ├── research/         # Firecrawl crawl, researchDocs, vector search
 │   ├── reports/          # report builder + file storage
@@ -83,7 +83,7 @@ remi/
 - Nothing in the product calls a text generating LLM. Reports and questions render from typed values through templates.
 - Batch independent questions over the same state into one call.
 - The key stays server side. Call JEV only from Convex actions.
-- Verified contract and live-call evidence live in `refs/jev-api.md`. The adapter is `lib/jev.ts` until it moves to `convex/jev/`.
+- Verified contract and live-call evidence live in `refs/jev-api.md`. The adapter is `convex/jev/adapter.ts`.
 
 ## Stack rules
 
