@@ -45,7 +45,7 @@ Issues #2 keyur, #4 aether. Parallel, disjoint modules.
 - [x] Confidence gate sets `lowConfidence` instead of a number below threshold.
 - [x] Static. `npx tsc --noEmit` clean.
 - [x] Runtime. Scripted assessment persists scores carrying `modelVersion` `jev-1.13.0`, a wrong answer scores low, a weak answer gates.
-- [ ] PR merged.
+- [x] PR merged (#12, squash), deployed to prod, live URL verified. `hackathon.md` created covering r1 and r2.
 
 ### #4 Crawl trusted sources and capture journal observations
 
@@ -77,11 +77,10 @@ Issues #5 keyur, #3 aether. Each consumes the other lane's r2 output.
 - [ ] Runtime. Matches point at real `researchDocs` rows, carry rationale codes, and exclude an unrelated finding.
 - [ ] PR merged.
 
-### #3 Make the scoring pipeline durable and replayable
+### #3 Make the scoring pipeline durable and observable
 
 - [ ] `convex/workflows/` with the `@convex-dev/workflow` definition.
 - [ ] `convex/workflowRuns/` records every transition.
-- [ ] Replay fixtures plus the switch that selects replay over live JEV.
 - [ ] Error and retry paths with typed validation at the action boundary.
 - [ ] Static. `npx tsc --noEmit` clean.
 - [ ] Runtime. A run shows its full state trail, and an invalid key lands retryable then failed with the error recorded.
