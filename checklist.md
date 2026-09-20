@@ -104,7 +104,7 @@ Issues #7 keyur, #6 aether.
 - [x] Query for current consent state per subject.
 - [x] Static. `npx tsc --noEmit` clean.
 - [x] Runtime. Grant, send, revoke, blocked second send. The revoked row keeps its original scope.
-- [x] PR merged.
+- [ ] PR merged.
 
 ### #6 Build the visit report and deliver it by email
 
