@@ -99,11 +99,11 @@ Issues #7 keyur, #6 aether.
 
 ### #7 Gate every send behind explicit consent
 
-- [ ] `convex/consents/` grant with scope, revoke, and the guard the send path calls.
-- [ ] The record stores the exact report, recipient, and scope shown at grant time.
-- [ ] Query for current consent state per subject.
-- [ ] Static. `npx tsc --noEmit` clean.
-- [ ] Runtime. Grant, send, revoke, blocked second send. The revoked row keeps its original scope.
+- [x] `convex/consents/` grant with scope, revoke, and the guard the send path calls.
+- [x] The record stores the exact report, recipient, and scope shown at grant time.
+- [x] Query for current consent state per subject.
+- [x] Static. `npx tsc --noEmit` clean.
+- [x] Runtime. Grant, send, revoke, blocked second send. The revoked row keeps its original scope.
 - [ ] PR merged.
 
 ### #6 Build the visit report and deliver it by email
@@ -125,6 +125,14 @@ Issues #7 keyur, #6 aether.
 - [ ] Schema and contracts frozen. No further edits without both builders.
 
 Notes
+
+- #7 runtime evidence. `npm run verify:consent` against the isolated dev deployment `keyur-bodar19:remi:dev/keyur/r4-consent` passed 18/18 assertions. The guard is an `internalQuery` (`consents/guard:requireConsent`) because #6 calls it from the send action through `ctx.runQuery`; the script drives it through the Convex CLI, the only transport that reaches internal functions, and reads the refusal out of the typed `ConvexError` payload (`{"code":"consent_revoked","reportId":"..."}`) rather than out of a message string. Observed in order: `consent_missing` before any grant, the granted triple admitted and echoing the live consent id, `recipient_mismatch` for a different address, `scope_mismatch` for a different scope, `consent_revoked` on the second send, and the revoked row still reading scope `email the visit brief to the caregiver` with its original `grantedAt`.
+- #7 revoke is report-scoped, and that is a fix, not a preference. An adversarial review found that a revoke taking one `consentId` left a second live grant for the same report open, so a send still went out after the person revoked. Reproduced against the old code: two grants, revoke the first, and the guard returned a receipt instead of refusing. The fix takes `reportId` and closes every live row in one call, and the same sequence now refuses with `consent_revoked`. The regression is asserted in the suite.
+- #7 review fixes, all verified live. `latestGrant` compares with `>=` so equal `grantedAt` values resolve to the newest row rather than the oldest (`_creationTime` is function start time, not commit order, so it is not a better key). The guard reports a report that does not exist as `Unknown report: <id>` instead of the `recipient_mismatch` refusal code #6 branches on. `grant` refuses a report whose status is not `final`, so consent is never recorded against a recipient that can still change.
+- #7 send line reads as the guard, not as AgentMail. Issue #6 owns `convex/email/send.ts` and has not landed, so the "send succeeds" half of the runtime line is the guard admitting the send it gates. The suite proves what the gate decides; it cannot prove #6 calls it with the same recipient and scope it sends, and #6's own runtime line carries that.
+- #7 recipient binding. The frozen `consents` table carries no recipient column, so the guard binds the address through `reports.recipient` and `grant` refuses when the address it is handed is not the address on the report. A grant cannot be shown one address and store another, and a report whose recipient changes after the grant would move the consented address with no row recording it, which is why `grant` requires a `final` report.
+- #7 deviations. `convex/consents/fixtures.ts` stages a report and a second subject so the consent flow can be proven headless before #6 lands; both are internal mutations, unreachable from the app, and #6 replaces the report fixture with the real builder. The guard signature was committed first (`dfc1109`) because #6 depends on it. `verify-consent.ts` aborts before seeding when `CONVEX_URL` and `CONVEX_DEPLOYMENT` disagree, because `seed:seed` clears all twelve tables on whichever deployment the client names.
+- #7 gaps. Prod deploy is deferred to the r4 merge so #7 and #6 land together, the same call r2 made; the isolated deployment is the runtime evidence. `/hackathon` and `/skill:show-me-your-work` are not installed in this worktree, so `hackathon.md` was updated by hand.
 
 ## r5 Frontend and ship
 
@@ -180,6 +188,13 @@ One line per deviation or call worth remembering. Newest first.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-09-20 | `revoke` takes a `reportId` and closes every live consent row for that report, instead of taking one `consentId` | An adversarial review reproduced an admit-after-revoke: a report can hold two live grants, and revoking the one row the client held left the other open, so the send went out anyway. Report-scoped revoke makes the withdrawal always effective, and it removes the need for the read path to hand out a consent id. |
+| 2026-09-20 | `grant` refuses a report whose status is not `final` | The frozen `consents` table stores no recipient, so the address is bound through `reports.recipient`; consenting against a draft would let a later recipient edit move the address the person agreed to with no row recording it. |
+| 2026-09-20 | Consent is checked by an `internalQuery` guard, not a public mutation | #6's send action is the only caller and runs inside Convex, so the guard needs no public surface and the consent row stays the single writer of consent state. |
+| 2026-09-20 | The guard refuses with `ConvexError<ConsentDenial>` carrying `{ code, reportId }` | The send path branches on a typed code instead of a message string, and a caller bug stays a plain `Error` so a refusal is never confused with a crash. |
+| 2026-09-20 | The recipient a consent covers is read from `reports.recipient`, not stored on `consents` | The schema is frozen at Wave 4 and carries no recipient column on `consents`; binding through the report keeps one address per report and turns a mismatch into a refusal instead of a silent send. |
+| 2026-09-20 | `convex/consents/fixtures.ts` stages a `final` report and a second subject for the runtime proof | #6 has not landed and the issue's runtime line needs a real report row to grant against; the second subject is what makes the subject filter in `consentState` observable. Both are internal-only and #6 replaces the report fixture with the real builder. |
+| 2026-09-20 | #7 runtime verified on the isolated dev deployment, prod deploy deferred to the r4 merge | #7 and #6 ship together as r4. Deploying the consent half alone would put a gate in front of a send path that does not exist yet. |
 | 2026-09-20 | The matcher names each finding by its state path inside the JEV question | The batched noul asked about "this finding" over a state holding every finding, so the model answered a coin flip for the batch: 0.71 and 0.70 on a relevant page and an off-topic page, both over the cutoff, which would have matched osteoarthritis guidance to a memory concern. Naming the path (`findings[2]`) moved the same two to 0.97 and 0.04. Fixed in `convex/jev/adapter.ts`, the only edit outside #5's named files. |
 | 2026-09-20 | #5 fixtures are synthetic `researchDocs` rows seeded through an internal mutation reached by the CLI | The #4 crawler has not merged, so the runtime check needs stand-in documents. Internal keeps a fixture out of the public API surface, and the suite shells out to `convex run` for that one step because a Convex client cannot reach an internal function. Real crawled rows replace them when #4 lands. |
 | 2026-09-20 | The evidence matcher does no vector retrieval, and caps its JEV batch at 99 candidates | JEV judges relevance over the profile, so a vector pre-filter would be a second, redundant judgment on the same question, and `researchDocs.embedding` is left unset until an embedding model is chosen. The cap keeps one `systemOne` call inside the adapter's documented batch size. |
