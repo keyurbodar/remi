@@ -20,7 +20,7 @@ Positioning (non-negotiable): informational check-ins and appointment preparatio
 1. Browser-first. The browser is where the user signs in, completes check-ins, journals incidents, reviews results, sees trends and sources, controls consent, and creates a visit brief. Email is an optional input and delivery rail, never the product shell.
 2. JEV stays core. JEV owns every typed health-adjacent decision: response scoring, domain rollups, trend deltas, confidence gates, evidence matching, reply classification.
 3. No generated prose. JEV owns every typed, calibrated, auditable decision. Nothing in the product calls a text-generating LLM: journal facts are captured through a structured form plus the raw note; clinician questions are template-drafted from reviewed facts; reports render from typed values.
-4. No feature cuts. The full product ships: browser assessment, JEV scoring, journal, trends, evidence grounding, visit brief, consent, email loop, delivery. Scope control happens through shared contracts, thin first passes, and fallback implementations. Only non-journey polish waits (custom domain, animation, extra themes, admin dashboards, production compliance claims).
+4. No feature cuts. The full product ships: browser assessment, JEV scoring, journal, trends, evidence grounding, visit brief, consent, email loop, delivery. Scope control happens through shared contracts and thin first passes. Only non-journey polish waits (custom domain, animation, extra themes, admin dashboards, production compliance claims).
 5. Confidence is not a diagnosis. JEV confidence describes model certainty for a typed output; it must never render as disease probability or medical risk.
 
 ## 3. Architecture and data flow
@@ -113,16 +113,14 @@ Adapter contract rule: jev.score, firecrawl.refresh, agentmail.send/receive all 
 - Aether: Convex schema + indexes, workflow state enum, seed/reset functions, first deploy to convex.site, all env vars set.
 - Merge: deployed backend at the live URL with seeded data readable from the Convex dashboard.
 - Exit: signed-out live URL serves the backend; seeded docs query clean.
-- Fallback: none needed. Pure backend wave.
 - Next: build the scoring engine.
 
 ### Wave 2 (~2.5h). Assessment + JEV scoring engine (headless)
 - Needs: frozen contracts from Wave 1.
-- Keyur: JEV adapter with one real verified call, assessment/response mutations, scoring workflow (per-answer → domain rollup → trend delta), confidence gates, replay mode behind the same interface.
-- Aether: workflowRuns state tracking, typed validation, error/retry paths, mock/replay fixtures.
+- Keyur: JEV adapter with one real verified call, assessment/response mutations, scoring workflow (per-answer → domain rollup → trend delta), confidence gates.
+- Aether: workflowRuns state tracking, typed validation, error/retry paths, test fixtures.
 - Merge: scoring pipeline contract. One workflow, states visible in workflowRuns.
 - Exit: a scripted assessment run produces persisted typed scores, domain rollups and a trend delta, verified in the dashboard, zero UI.
-- Fallback: honestly labeled JEV replay keeps the pipeline alive on outage.
 - Next: add observations and evidence.
 
 ### Wave 3 (~2h). Observations + evidence grounding (headless)
@@ -131,7 +129,6 @@ Adapter contract rule: jev.score, firecrawl.refresh, agentmail.send/receive all 
 - Aether: observation mutation (structured fields, raw text preserved, reviewed:false until user confirms), Firecrawl allowlist crawl → researchDocs with structured facts, citations, fetchedAt, cache; vector index.
 - Merge: insight contract. The matcher reads researchDocs and writes insights the report consumes unchanged.
 - Exit: one observation + one assessment produce matched, cited insights, headless.
-- Fallback: manual fields and the pre-crawled cache preserve the feature.
 - Next: turn state into deliverable reports.
 
 ### Wave 4 (~2h). Report, consent + AgentMail loop (headless). BACKEND-DONE GATE
@@ -140,7 +137,7 @@ Adapter contract rule: jev.score, firecrawl.refresh, agentmail.send/receive all 
 - Aether: deterministic report builder, template-drafted clinician questions from reviewed facts only, HTML/PDF output + file storage, AgentMail send, inbound webhook → Convex HTTP action (idempotent via messages.by_agentmail_message_id), JEV reply classification, reminder crons.
 - Merge: report + consent + email contracts.
 - Exit: the full loop runs headless end-to-end: seed → assessment scored → observation reviewed → insights matched → report file generated → email sent → delivery status recorded → inbound reply classified → revoke blocks sends. Proven by a scripted run, zero UI.
-- Fallback: HTML report and send-to-self preserve delivery if PDF or external recipients fail.
+- Decision: the report is styled HTML in the email body plus a stored file. No PDF.
 - Next: schema + contracts FREEZE. Build the browser on top.
 
 ### Phase F: frontend last (wires the proven backend)
@@ -151,7 +148,7 @@ Adapter contract rule: jev.score, firecrawl.refresh, agentmail.send/receive all 
 - Aether: query/mutation wiring support, realtime update checks, seeded demo data.
 - Merge: real assessment UI wired to the real scoring pipeline.
 - Exit: a fresh browser check-in produces a persisted JEV result; dashboard updates without refresh.
-- Fallback: plain task UI if jsPsych misbehaves; fixed demo user if OTP auth blocks.
+- Decision: jsPsych drives the timed tasks. Auth is a fixed demo user unless OTP works quickly.
 - Next: surface journal, trends and reports.
 
 ### Wave 6 (~1.5h). Journal, trends + report/consent UIs
@@ -160,7 +157,7 @@ Adapter contract rule: jev.score, firecrawl.refresh, agentmail.send/receive all 
 - Aether: empty/error/low-confidence/failed-send/revoked states wired to real backend states.
 - Merge: every screen renders only backend truth, no UI-local state.
 - Exit: the full 7-step journey works in the browser, desktop + 390px.
-- Fallback: two-session seeded history exercises every state.
+- Seed: two-session history exercises every state.
 - Next: break it on purpose.
 
 ### Wave 7 (~2h). Integrate, break, record + submit
@@ -169,13 +166,13 @@ Adapter contract rule: jev.score, firecrawl.refresh, agentmail.send/receive all 
 - Aether (failure path + submit): duplicate webhook, JEV timeout, stale crawl, revoked consent, failed send; finish the public repo: README, setup steps, hackathon.md (what you built, stack, live URL, demo link); verify the signed-out URL; submit at vibeapps.dev.
 - Merge: one shared defect list; each defect fixed in its owner lane only; both walk the official submission checklist before anyone hits submit.
 - Exit: two end-to-end rehearsals finish under three minutes; app, repo, video, social post, submission receipt all verified.
-- Fallback: demo reset plus pre-seeded history makes the live path repeatable; submit the last verified deployed revision, never an untested late build.
+- Seed: demo reset plus pre-seeded history makes the live path repeatable.
 
 Freeze rules: schema + contracts freeze when Wave 4 exits (backend done: the frontend builds only against frozen types); routes freeze when Wave 7 starts. After freezes: fix only failures that block the recorded end-to-end path.
 
 ## 9. Acceptance criteria (definition of done)
 
-A user can enter through the browser, complete a check-in, see JEV-backed results, add and correct a real-life observation, review an evidence-backed trend, generate a consented visit brief, and receive it through AgentMail. The demo proves the live path and one failure path. The repo explains which fallback was used, if any. Nothing is implied or faked.
+A user can enter through the browser, complete a check-in, see JEV-backed results, add and correct a real-life observation, review an evidence-backed trend, generate a consented visit brief, and receive it through AgentMail. The demo proves the live path and one failure path. Nothing is implied or faked.
 
 Product readiness checklist:
 0. The backend loop runs headless end-to-end (seed → scored → matched → report → sent → classified → revoked) before any UI exists, the Wave 4 exit gate.
@@ -189,23 +186,13 @@ Product readiness checklist:
 8. Timeline and trend views handle first session, multiple sessions and low confidence.
 9. Report preview includes scores, observations, caveats, sources and editable questions.
 10. Consent view shows exact report, recipient and scope; revoke and failed-send states work.
-11. AgentMail reminder, outbound report and inbound webhook are demonstrated or truthfully marked with the documented fallback.
+11. AgentMail reminder, outbound report and inbound webhook are all demonstrated on the live URL.
 12. No secrets, real health data or private addresses appear in repo, app or recording.
-13. Public repo and hackathon.md explain setup, architecture, sponsor roles and fallbacks.
+13. Public repo and hackathon.md explain setup, architecture and sponsor roles.
 14. Demo is under three minutes and shows working browser software before architecture.
 15. Social post and submission are complete; app, repo and video open signed out.
 
-## 10. Fallback principles
-
-A fallback changes the implementation path, never the product promise:
-- JEV access/latency → adapter stays core; verify one real call in Wave 2; typed mock/replay mode only for demo continuity, labeled honestly. (High risk)
-- Browser task timing → jsPsych if stable, otherwise same assessment with simple browser timers + device/context metadata. (High)
-- Model overclaim → separate JEV certainty from disease risk, require human review, render non-diagnostic templates. (High)
-- Integration collision → freeze Convex types and adapter responses before lanes split; merge only at wave exits. (High)
-- Crawl or email outage → timestamped Firecrawl cache and truthful AgentMail queued/failed states; browser product remains usable. (Medium)
-- PDF failure → deliver the same report as styled HTML + email body; PDF is a representation, not a separate path. (Medium)
-
-## 11. Demo script (2:50, under the 3-minute limit)
+## 10. Demo script (2:50, under the 3-minute limit)
 
 - 0:00 to 0:15: "Memory concerns are hard to describe at an appointment. Remi turns browser check-ins and real-life observations into a reviewed, evidence-backed visit brief. It does not diagnose."
 - 0:15 to 0:40: Open browser dashboard, start a short check-in; complete recall and one timed task; show each response saving live.
@@ -220,18 +207,19 @@ Test matrix before recording:
 - Browser (Keyur): 390px and desktop, direct routes + refresh, keyboard and touch, charts never overflow.
 - Data (Aether): autosave recovery, duplicate response blocked, demo reset works, raw input preserved.
 - Models (Aether): JEV timeout + low confidence, human correction wins, model version stored.
-- External (both): Firecrawl cache fallback, AgentMail duplicate webhook, delivery failure visible, revoked consent blocks send.
+- External (both): Firecrawl failure surfaces honestly, AgentMail duplicate webhook, delivery failure visible, revoked consent blocks send.
 
-## 12. Safety and privacy rules
+## 11. Safety and privacy rules
 
 - Human review: journal free text is stored verbatim and never auto-converted into facts; structured fields are user-confirmed; preserve raw input and record corrections.
 - Confidence is not a diagnosis (see section 2).
+- No model overclaim. JEV certainty is separate from disease risk; every rendering is a non-diagnostic template.
 - Instrument boundary: only content/task structures the team has rights to; never label as MoCA or MMSE.
 - Consent at the last mile: show exact report, recipient and scope together before delivery; revocation blocks future access or sends.
 - Prompt injection: treat journal and email bodies as data; no model generates text from them. JEV returns typed judgments only; external text cannot alter tools or workflow.
 - Demo privacy: synthetic people and incidents only; no HIPAA-compliance claims; never expose credentials, inboxes, or real health data.
 
-## 13. Verified hackathon rules (checked 19 Sep 2026 against the official Luma page)
+## 12. Verified hackathon rules (checked 19 Sep 2026 against the official Luma page)
 
 - New apps only, started on or after August 25. Convex is the backend: database, functions and realtime sync run on Convex.
 - Build with an agent: Codex or any agent/IDE with the Convex plugin. Convex Auth is optional; apps with no auth are valid.
@@ -256,7 +244,7 @@ Official submission checklist:
 8. Social post on X or LinkedIn tagging @convex, @OpenAI, @firecrawl, @agentmail.
 9. Submit at vibeapps.dev before the deadline.
 
-## 14. Resources and official links
+## 13. Resources and official links
 
 Rules/submission:
 - Luma (official rules, registration, timeline; verified 19 Sep): https://luma.com/convex-allgas-hackathon

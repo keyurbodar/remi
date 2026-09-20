@@ -11,9 +11,7 @@
  *   - Move into `convex/jev/` at scaffold; call ONLY from Convex actions
  *     (API key stays server-side, never in client bundles).
  *   - This file is the Day-0 contract: Keyur (scoring) and Aether
- *     (classification) both go through it. Fallback: if JEV access lapses,
- *     re-implement these five functions over any structured-output LLM,
- *     callers must not change.
+ *     (classification) both go through it.
  *   - Independent questions over the same state are batched into ONE
  *     systemOne call (parallel sampling, no cross-contamination).
  *

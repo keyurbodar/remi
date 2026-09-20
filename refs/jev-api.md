@@ -62,4 +62,4 @@ Read: correctly judged wrong (93% wrong) but quality = "Partial" (2/3 words righ
 
 ## Adapter
 
-`lib/jev.ts`: five functions (scoreAnswer, assessTrend, recommendEscalation, classifyReply, matchFindings). Moves into `convex/jev/` at scaffold. Fallback contract: re-implement the same five over any structured-output LLM; callers never change.
+`lib/jev.ts`: five functions (scoreAnswer, assessTrend, recommendEscalation, classifyReply, matchFindings). Moves into `convex/jev/` at scaffold.

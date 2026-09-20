@@ -84,7 +84,6 @@ remi/
 - Batch independent questions over the same state into one call.
 - The key stays server side. Call JEV only from Convex actions.
 - Verified contract and live-call evidence live in `refs/jev-api.md`. The adapter is `lib/jev.ts` until it moves to `convex/jev/`.
-- Fallback rule. If JEV is unreachable, the same five adapter functions get re-implemented over a structured output LLM. Callers never change.
 
 ## Stack rules
 
