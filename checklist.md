@@ -16,17 +16,19 @@ Check items off as they land. When something deviates, add one line under that r
 
 Issues #1. Owners both.
 
-- [ ] `shared/contracts.ts` frozen. Adapter signatures and document types.
-- [ ] `convex/schema.ts` frozen. Tables, indexes, vector index on `researchDocs`.
-- [ ] `convex/seed.ts` with seed and reset for one synthetic subject.
-- [ ] Convex project created, every env var set in the dashboard.
-- [ ] Static. `npx tsc --noEmit` clean.
-- [ ] Runtime. Seed runs, every table queries clean, the `convex.site` URL loads signed out.
+- [x] `shared/contracts.ts` frozen. Adapter signatures and document types.
+- [x] `convex/schema.ts` frozen. Tables, indexes, vector index on `researchDocs`.
+- [x] `convex/seed.ts` with seed and reset for one synthetic subject.
+- [x] Convex project created, every env var set in the dashboard.
+- [x] Static. `npx tsc --noEmit` clean.
+- [x] Runtime. Seed runs, every table queries clean, the `convex.site` URL loads signed out.
 - [ ] PR merged and both builders pulled.
 
 Gate. Every later round is blocked until this lands. Do not start r2 early.
 
 Notes
+
+- All four Convex env vars are set on both deployments: TYPESAFE_API_KEY, FIRECRAWL_API_KEY, AGENTMAIL_API_KEY, AGENTMAIL_WEBHOOK_SECRET. The AgentMail webhook `ep_3JZer7S7YjOnNodx6erCteo3eHF` points at `/api/agentmail` on the prod deployment; the receiving endpoint lands in r4.
 
 ## r2 Scoring engine and crawl
 
@@ -167,3 +169,9 @@ One line per deviation or call worth remembering. Newest first.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-09-20 | Ship env to collaborators via dotenvx encrypted `.env`, committed to the repo | Both builders need the four keys locally; encryption lets the repo carry them while `.env.keys` stays private. Replaces "secrets never in the repo" with "never commit plaintext secrets". |
+| 2026-09-20 | Registered the AgentMail webhook before r4 builds the receiving endpoint | Creating the webhook is the only way to obtain the signing secret; deliveries to `/api/agentmail` fail harmlessly until the endpoint ships in r4. |
+| 2026-09-20 | Set all four env vars (TYPESAFE, FIRECRAWL, AGENTMAIL key and webhook secret) on both deployments | Keys arrived during r1; verified each with a live call before recording it as done. |
+| 2026-09-20 | Vector index `researchDocs.by_embedding` pinned to 1536 dimensions with a `publisher` filter | No embedding model is named in the plan; 1536 is the common default. Revisit with #5 before the Wave 4 freeze. |
+| 2026-09-20 | Added a root GET route in `convex/http.ts` during r1 | `convex.site` 404s with no HTTP actions deployed, and the r1 exit requires the live URL to load signed out. The AgentMail webhook appends here in r4. |
+| 2026-09-20 | Set only TYPESAFE_API_KEY in the dashboard | Firecrawl and AgentMail keys do not exist yet; missing names are listed in the PR #11 body, no values invented. |

@@ -1,0 +1,16 @@
+{
+  "name": "remi",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@typesafe-ai/sdk": "^1.0.0",
+    "convex": "^1.28.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}
