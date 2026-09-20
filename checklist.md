@@ -22,13 +22,15 @@ Issues #1. Owners both.
 - [x] Convex project created, every env var set in the dashboard.
 - [x] Static. `npx tsc --noEmit` clean.
 - [x] Runtime. Seed runs, every table queries clean, the `convex.site` URL loads signed out.
-- [ ] PR merged and both builders pulled.
+- [x] PR merged (#11, squash) and main pulled. Aether pulls on invite acceptance.
+- [x] Independent review passed. Seed re-run against prod returned five ids, live URL HTTP 200 signed out, `.env` audited as ciphertext-only with `.env.keys` untracked.
 
 Gate. Every later round is blocked until this lands. Do not start r2 early.
 
 Notes
 
 - All four Convex env vars are set on both deployments: TYPESAFE_API_KEY, FIRECRAWL_API_KEY, AGENTMAIL_API_KEY, AGENTMAIL_WEBHOOK_SECRET. The AgentMail webhook `ep_3JZer7S7YjOnNodx6erCteo3eHF` points at `/api/agentmail` on the prod deployment; the receiving endpoint lands in r4.
+- Deviations accepted at review: encrypted `.env` committed via dotenvx (ciphertext verified, private key untracked), vector index pinned to 1536 dims pending #5, root HTTP route added so the exit gate could run, webhook registered early to obtain the signing secret.
 
 ## r2 Scoring engine and crawl
 
