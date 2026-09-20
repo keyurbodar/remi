@@ -109,21 +109,21 @@ Issues #7 keyur, #6 aether.
 
 ### #6 Build the visit report and deliver it by email
 
-- [ ] `convex/reports/build.ts`, deterministic render from typed values.
-- [ ] Template-drafted clinician questions from reviewed facts only.
-- [ ] File storage for the HTML and PDF artifacts.
-- [ ] `convex/email/send.ts` with an idempotency key.
-- [ ] `convex/http.ts` webhook with signature verification and idempotency on `messages.by_agentmail_message_id`.
-- [ ] `convex/email/classify.ts` for JEV reply classification.
-- [ ] Reminder cron appended to `convex/crons.ts`. Append only.
-- [ ] Static. `npx tsc --noEmit` clean.
-- [ ] Runtime. Send to self arrives, a replayed webhook writes one record, a revoked consent refuses the send.
+- [x] `convex/reports/build.ts`, deterministic render from typed values.
+- [x] Template-drafted clinician questions from reviewed facts only.
+- [x] File storage for the report artifact. HTML only, per the Wave 4 plan decision.
+- [x] `convex/email/send.ts` with an idempotency key.
+- [x] `convex/http.ts` webhook with signature verification and idempotency on `messages.by_agentmail_message_id`.
+- [x] `convex/email/classify.ts` for JEV reply classification.
+- [x] Reminder cron appended to `convex/crons.ts`. Append only.
+- [x] Static. `npx tsc --noEmit` clean.
+- [x] Runtime. Send to self arrives, a replayed webhook writes one record, a revoked consent refuses the send.
 - [ ] PR merged.
 
 ### Backend done gate
 
-- [ ] Full loop headless. Seed, score, review, match, report file, send, delivery recorded, reply classified, revoke blocks the next send.
-- [ ] Schema and contracts frozen. No further edits without both builders.
+- [x] Full loop headless. Seed, score, review, match, report file, send, delivery recorded, reply classified, revoke blocks the next send.
+- [x] Schema and contracts frozen. No further edits without both builders.
 
 Notes
 
@@ -134,6 +134,11 @@ Notes
 - #7 recipient binding. The frozen `consents` table carries no recipient column, so the guard binds the address through `reports.recipient` and `grant` refuses when the address it is handed is not the address on the report. A grant cannot be shown one address and store another, and a report whose recipient changes after the grant would move the consented address with no row recording it, which is why `grant` requires a `final` report.
 - #7 deviations. `convex/consents/fixtures.ts` stages a report and a second subject so the consent flow can be proven headless before #6 lands; both are internal mutations, unreachable from the app, and #6 replaces the report fixture with the real builder. The guard signature was committed first (`dfc1109`) because #6 depends on it. `verify-consent.ts` aborts before seeding when `CONVEX_URL` and `CONVEX_DEPLOYMENT` disagree, because `seed:seed` clears all twelve tables on whichever deployment the client names.
 - #7 gaps. Prod deploy is deferred to the r4 merge so #7 and #6 land together, the same call r2 made; the isolated deployment is the runtime evidence. `/hackathon` and `/skill:show-me-your-work` are not installed in this worktree, so `hackathon.md` was updated by hand.
+- #6 runtime evidence. `npm run verify:report` against the isolated dev deployment `keyur-bodar19:remi:dev/keyur/r4-report` passed 17/17 assertions. The loop is literal, not assembled from fixtures: seed, then a check-in answered, scored by a live JEV call and finished (memory 1.98, confidence 0.97, `answer_incorrect`, `modelVersion` `jev-1.13.0` read back off the score row), four synthetic `researchDocs`, match, build, finalize, grant, send, deliver, reply, classify, revoke. The brief is a 6729 byte styled HTML document with all five sections, the informational positioning sentence verbatim, and no instrument label; the stored file opened over its own URL at HTTP 200 with the same bytes. Six questions were drafted, each carrying its provenance token (`domain:memory:value`, `observation:<id>`, `insight:<id>:National Institute on Aging`, `insight:<id>:NHS`, `subject:sleep`, `report:next_steps`). The send returned message `<010001a0bf35e3c0-f7b493dd...>` on thread `bf7a9603-a850-45e7-b34f-96a480500506` with the live consent id, and the message arrived in the recipient inbox with the report in the body (6985 bytes, subject `Remi visit brief for Asha Mehta`). The delivery webhook moved the outbound row to `delivered`. The reply was a real email out of the recipient inbox; JEV classified it `cognitive_concern` at confidence 1 and the typed judgement was read back out of `messages.classification`. Replaying that same signed delivery twice left exactly one row with the classification untouched, and an unsigned post of the same body was refused 400 before it reached the database. Revoke then refused the next send with `consent_revoked` and sent no second email.
+- #6 the reminder cron is proven at the scan, not at the send. `email/reminders:dueReminders` is read against the real database three times: a fresh check-in is not due, the same check-in a week later is due addressed to the consented recipient and scope, and a revoked consent takes it off the scan with the report. The mailing leg is the same `deliver` the report send proves end to end, so the cron has no second send path of its own to verify. The cron itself is registered in `convex/crons.ts` (weekly, Monday 15:23 UTC) and pushes with the rest of the backend.
+- #6 deviations. `buildReport` is an action over two internal helpers rather than a mutation: Convex Blob storage is action-only, so `ctx.storage.store` does not exist on a mutation context at runtime or in types (convex 1.46.0 wires mutation storage to the writer without `store`). `collectFacts` reads the reviewed state, `persistReport` makes the single `reports` insert, and the contracted name, args and returns are unchanged. The runtime proof sends to a second AgentMail inbox instead of the sending inbox, because a send to the inbox that sent it produces no received copy to read arrival back from. The isolated deployment carries its own webhook (`ep_3JasfOR89PWEpw1enuv4haqXwFH` pointing at `posh-vulture-735.convex.site/api/agentmail`) with its own signing secret set on that deployment only, so the prod webhook and its secret are untouched.
+- #6 the delivery events do not carry a `message` object. `message.sent`, `.delivered`, `.bounced`, `.rejected` and `.complained` each carry their own sub-object (`send`, `delivery`, `bounce`, `reject`, `complaint`), and only that sub-object holds the message id. Reading `event.message` on a delivery event returned null, which the endpoint answered with a 400 and which made the first run of the suite time out on the delivery assertion. `convex/email/adapter.ts` now picks the sub-object by event type, and a rejected or complained message records as the contract's `failed` rather than a state of its own, so every stored `deliveryStatus` stays inside the `DeliveryStatus` union the read path expects.
+- #6 the report artifact is HTML only. The issue's checklist line asked for HTML and PDF; the Wave 4 plan decision is styled HTML in the email body plus a stored file, no PDF, and that is what shipped. The stored artifact is the same bytes the email carries, so the preview, the file and the delivery cannot disagree.
 
 ## r5 Frontend and ship
 
@@ -189,6 +194,11 @@ One line per deviation or call worth remembering. Newest first.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-09-20 | The report artifact is HTML only, no PDF | The issue's checklist line names a PDF, the Wave 4 plan decision is styled HTML in the email body plus a stored file and no PDF, and the plan is the source of truth. The stored file and the email body are the same bytes, so the preview, the artifact and the delivery cannot disagree. |
+| 2026-09-20 | Each AgentMail event carries its own sub-object, so the webhook reads `send`/`delivery`/`bounce`/`reject`/`complaint` by event type, and a rejected or complained message records as `failed` | `message.delivered` has no `message` object, so reading `event.message` returned null and the endpoint answered 400; the first run of the suite timed out on the delivery assertion. Mapping reject and complaint onto the contract's `failed` keeps every stored `deliveryStatus` inside the `DeliveryStatus` union the read path expects. |
+| 2026-09-20 | `buildReport` is an action over an internal query and an internal mutation, not a mutation | Convex Blob storage is action-only: mutation `ctx.storage` has no `store` at runtime or in types on convex 1.46.0. The contracted name, args and returns are unchanged, and a crash between the store and the insert orphans one blob, which is the tradeoff Convex documents. |
+| 2026-09-20 | The runtime proof sends to a second AgentMail inbox rather than to the sending inbox | A send to the inbox that sent it produces no received copy, so there is nothing to read arrival back from. The issue's "send to self" is met by the message arriving in a real inbox with the report attached, and the isolated deployment gets its own webhook and signing secret so prod is untouched. |
+| 2026-09-20 | #6 runtime verified on the isolated dev deployment, prod deploy deferred to the r4 merge | #7 and #6 ship together as r4. Deploying the report and mail half alone would put an email path in front of the live URL without the consent gate that now sits behind it. Same call as r2 and r3. |
 | 2026-09-20 | `revoke` takes a `reportId` and closes every live consent row for that report, instead of taking one `consentId` | An adversarial review reproduced an admit-after-revoke: a report can hold two live grants, and revoking the one row the client held left the other open, so the send went out anyway. Report-scoped revoke makes the withdrawal always effective, and it removes the need for the read path to hand out a consent id. |
 | 2026-09-20 | `grant` refuses a report whose status is not `final` | The frozen `consents` table stores no recipient, so the address is bound through `reports.recipient`; consenting against a draft would let a later recipient edit move the address the person agreed to with no row recording it. |
 | 2026-09-20 | Consent is checked by an `internalQuery` guard, not a public mutation | #6's send action is the only caller and runs inside Convex, so the guard needs no public surface and the consent row stays the single writer of consent state. |
