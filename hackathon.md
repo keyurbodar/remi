@@ -12,7 +12,7 @@
 - **Auth:** none
 - **AI models:** jev-1.13.0 (TypeSafe System One model, called from Convex actions)
 - **Started:** 2026-09-19T22:13:08Z
-- **Last updated:** 2026-09-20T09:55:10Z
+- **Last updated:** 2026-09-20T12:15:29Z
 
 ## Log
 
@@ -30,3 +30,6 @@ Froze the shared contracts and shipped the backend spine. `shared/contracts.ts` 
 
 ### 2026-09-20 - 59d4fb6
 Shipped the JEV scoring engine. Every check-in answer gets one JEV call returning a typed calibrated score: correctness probability, anomaly flag, quality level on a 0 to 4 rubric, and a rationale code, persisted with the model version. Confidence gates set lowConfidence instead of emitting a number below threshold, and gated domains roll up to null with an insufficient_evidence rationale. Domain rollups compute as the mean of their answer rows and cross-session trend deltas compute per domain. Verified headless with real JEV calls: a two-session scripted assessment passed 18 assertions, including a deliberately wrong recall answer scoring 0.97 answer_incorrect and a borderline timed answer gating at confidence 0.63 while a solid answer at 0.95 rolled up normally (`convex/jev/`, `convex/assessments/`, `convex/scores/`, `scripts/verify-scoring.ts`). Convex features: actions, internal queries, internal mutations, mutations, indexes.
+
+### 2026-09-20 - dab02f1
+Matched subject profiles to stored evidence with JEV. One batched `systemOne` call carries a noul per candidate `researchDocs` row, so a profile plus a candidate set costs a single JEV call, and `convex/insights/rank.ts` turns those probabilities into ranked insight rows: a 0.7 relevance cutoff, a match type derived from which anchor the candidate shares terms with (domain, journal observation, or stated concern), a strong/moderate rationale code, and a top-five cap so the results panel shows a small defensible set. Insights are derived rows, so a re-run replaces the subject's set instead of appending. Fixed a real adapter defect the runtime run caught: the batched question asked about "this finding" over a state holding every finding, so the model answered a coin flip for the whole batch (0.71 and 0.70 on a relevant page and an off-topic page, both over the cutoff). Naming the finding by its state path moved the same pair to 0.97 and 0.04. Verified headless against the isolated dev deployment: 8/8 assertions, three insights citing real `researchDocs` rows with publisher, URL and `fetchedAt`, and the off-topic page excluded at 0.05 (`convex/research/match.ts`, `convex/insights/`, `convex/jev/adapter.ts`, `scripts/verify-insights.ts`).
