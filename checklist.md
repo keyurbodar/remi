@@ -70,11 +70,11 @@ Issues #5 keyur, #3 aether. Each consumes the other lane's r2 output.
 
 ### #5 Match subject profiles to evidence
 
-- [ ] `convex/research/match.ts` batches one JEV noul per candidate in a single call.
-- [ ] `convex/insights/` links subject, evidence, match type, confidence, rationale code.
-- [ ] Ranking plus a cutoff so the panel shows a small defensible set.
-- [ ] Static. `npx tsc --noEmit` clean.
-- [ ] Runtime. Matches point at real `researchDocs` rows, carry rationale codes, and exclude an unrelated finding.
+- [x] `convex/research/match.ts` batches one JEV noul per candidate in a single call.
+- [x] `convex/insights/` links subject, evidence, match type, confidence, rationale code.
+- [x] Ranking plus a cutoff so the panel shows a small defensible set.
+- [x] Static. `npx tsc --noEmit` clean.
+- [x] Runtime. Matches point at real `researchDocs` rows, carry rationale codes, and exclude an unrelated finding.
 - [ ] PR merged.
 
 ### #3 Make the scoring pipeline durable and observable
@@ -87,6 +87,11 @@ Issues #5 keyur, #3 aether. Each consumes the other lane's r2 output.
 - [ ] PR merged.
 
 Notes
+
+- #5 runtime evidence. `npm run verify:insights` against the isolated dev deployment `keyur-bodar19:remi:dev/keyur/r3-insights` seeded the 65-74 subject (finished assessment, memory 2.01, one reviewed journal observation about repeating a question) plus four `researchDocs` rows, ran the matcher, and read the panel back. 8/8 assertions passed. JEV relevance: NIA memory problems 0.97, NHS memory loss 0.96, NIA what to tell the doctor 0.81, Mayo Clinic osteoarthritis 0.05 excluded. Three insights written, each citing one real `researchDocs` row with publisher, URL and `fetchedAt`: 0.97 `concern_signal` `strong_relevance`, 0.96 `domain_signal` `strong_relevance`, 0.81 `concern_signal` `moderate_relevance`. One JEV call carried all four nouls.
+- #5 the matcher question has to name the finding. `matchFindings` asked "Is this finding relevant to this person's cognitive profile?" over a state holding every finding, so the model answered a coin flip for the whole batch: 0.71 and 0.70 on a relevant page and the off-topic page, both above the cutoff, which would have matched osteoarthritis guidance to a memory concern. Naming the finding by its state path (`findings[2]`) moved the same two candidates to 0.97 and 0.04. Fixed in `convex/jev/adapter.ts`, the one change outside this issue's named files, and the r2 suite re-ran at 18/18.
+- #5 deviations. The `researchDocs` rows are synthetic, inserted by `convex/research/syntheticDocs.ts`, because the #4 crawler has not merged; real crawled rows replace them when it lands. The matcher does no embedding or vector retrieval, since JEV judges relevance and retrieval would be a second redundant filter, so `embedding` stays unset on the fixtures. Insights are derived rows, so a re-run replaces the subject's set: two matcher runs left 3 rows, not 6. Prod deploy waits for the r3 merge so #5 and #3 land together, the same call r2 made.
+- #5 gap. The panel returns `matchType` and `rationaleCode` as `v.string()` because the frozen `convex/schema.ts` declares them as strings. The literal unions live in `convex/insights/rank.ts` and are enforced on write, so the read path widens them.
 
 ## r4 Consent and report
 
@@ -175,6 +180,10 @@ One line per deviation or call worth remembering. Newest first.
 
 | Date | Decision | Why |
 |---|---|---|
+| 2026-09-20 | The matcher names each finding by its state path inside the JEV question | The batched noul asked about "this finding" over a state holding every finding, so the model answered a coin flip for the batch: 0.71 and 0.70 on a relevant page and an off-topic page, both over the cutoff, which would have matched osteoarthritis guidance to a memory concern. Naming the path (`findings[2]`) moved the same two to 0.97 and 0.04. Fixed in `convex/jev/adapter.ts`, the only edit outside #5's named files. |
+| 2026-09-20 | #5 fixtures are synthetic `researchDocs` rows seeded through an internal mutation reached by the CLI | The #4 crawler has not merged, so the runtime check needs stand-in documents. Internal keeps a fixture out of the public API surface, and the suite shells out to `convex run` for that one step because a Convex client cannot reach an internal function. Real crawled rows replace them when #4 lands. |
+| 2026-09-20 | The evidence matcher does no vector retrieval, and caps its JEV batch at 99 candidates | JEV judges relevance over the profile, so a vector pre-filter would be a second, redundant judgment on the same question, and `researchDocs.embedding` is left unset until an embedding model is chosen. The cap keeps one `systemOne` call inside the adapter's documented batch size. |
+| 2026-09-20 | #5 runtime verified on the isolated dev deployment, prod deploy deferred to the r3 merge | #5 and #3 ship together as r3. Deploying one lane mid-round would put a backend that matches evidence without the durable pipeline in front of the live URL. Same call as r2. |
 | 2026-09-20 | Pinned `@typesafe-ai/sdk` to `^0.6.0` | `package.json` asked for `^1.0.0`, which npm does not publish (latest is 0.6.0). The r1 lockfile already resolved 0.6.0, so the manifest now matches the installed SDK and the adapter API that `refs/jev-api.md` verified. |
 | 2026-09-20 | Deleted `lib/jev.ts` in favour of `convex/jev/adapter.ts`, and swapped `lib/**/*` for `scripts/**/*` in the tsconfig include | The adapter moves into the Convex backend at scaffold; keeping the Day-0 copy beside it would be a second code path for the same JEV contract, and `lib/` held nothing else. |
 | 2026-09-20 | Domain rollup and trend delta are read paths over the per-answer `scores` rows, not separate persisted rows | One row per scored answer keeps the confidence gate, the domain rollup and the trend derived from the same evidence, and lets a trend recompute when a session is re-read. Revisit with #3 if the durable pipeline wants stored rollups. |
