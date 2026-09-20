@@ -123,7 +123,8 @@ Issues #7 keyur, #6 aether.
 - [x] Reminder cron appended to `convex/crons.ts`. Append only.
 - [x] Static. `npx tsc --noEmit` clean.
 - [x] Runtime. Send to self arrives, a replayed webhook writes one record, a revoked consent refuses the send.
-- [ ] PR merged.
+- [x] PR merged (#16, squash), deployed to prod, live URL verified.
+- [x] Done-gate run against prod. The full loop executed on the production deployment: 17/17 assertions, the brief delivered to the case inbox with the report in the body, the delivery webhook recorded, the reply classified `cognitive_concern`, and a revoked consent refusing the next send.
 
 ### Backend done gate
 
